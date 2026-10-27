@@ -19,9 +19,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
-// ==========================================
-// کدهای HTML کاربر (فرانت‌اند)
-// ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -117,9 +114,6 @@ const userHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// ==========================================
-// کدهای HTML ادمین
-// ==========================================
 const adminHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -182,7 +176,7 @@ const adminHtml = `<!DOCTYPE html>
 // API Routes
 // ==========================================
 
-// جلوگیری از کش شدن توسط تلگرام
+// جلوگیری مطلق از کش شدن
 app.get('/', (req, res) => { 
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.send(userHtml); 
@@ -265,5 +259,4 @@ app.post('/api/admin/review', async (req, res) => {
   res.json({ success: true });
 });
 
-// بسیار مهم برای Vercel
 module.exports = app;
