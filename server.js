@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
-const path = require('path'); // اضافه شده
+const path = require('path');
 const app = express();
 
 const port = process.env.PORT || 9090; 
@@ -11,11 +11,8 @@ const TELEGRAM_CHAT_ID = "5972276401";
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
-
-// این خط به سرور می‌گوید فایل‌های استاتیک را از کجا بخواند
 app.use(express.static(path.join(__dirname, 'public')));
 
-// این خط تضمین می‌کند که وقتی کاربر وارد سایت می‌شود، فایل HTML باز شود
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -34,14 +31,18 @@ function verifyTelegramWebAppData(telegramInitData) {
 }
 
 app.post('/api/auth/telegram', (req, res) => {
-  const { initData } = req.body;
-  if (!initData || !verifyTelegramWebAppData(initData)) {
-    return res.status(401).json({ success: false, message: 'اطلاعات تلگرام نامعتبر است' });
+  try {
+    const { initData } = req.body;
+    if (!initData || !verifyTelegramWebAppData(initData)) {
+      return res.status(401).json({ success: false, message: 'اطلاعات تلگرام نامعتبر است' });
+    }
+    const urlParams = new URLSearchParams(initData);
+    const userStr = urlParams.get('user');
+    const tgUser = JSON.parse(userStr);
+    res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user' } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'خطای سرور: ' + error.message });
   }
-  const urlParams = new URLSearchParams(initData);
-  const userStr = urlParams.get('user');
-  const tgUser = JSON.parse(userStr);
-  res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user' } });
 });
 
 app.post('/api/upload-receipt', async (req, res) => {
@@ -63,6 +64,11 @@ app.post('/api/upload-receipt', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// این بخش مخصوص Vercel است تا سرور به درستی اجرا شود
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
+
+module.exports = app;
