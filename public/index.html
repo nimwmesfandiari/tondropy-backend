@@ -24,17 +24,14 @@
 <div class="glass-card" id="app">
   <div class="title">TON Dropy</div>
   
-  <!-- لودینگ اولیه -->
   <div id="loading-section">
     <p>در حال بررسی هویت...</p>
   </div>
 
-  <!-- خطای دسترسی خارج از تلگرام -->
   <div id="error-section" class="hidden">
-    <p style="color: red;">لطفاً این صفحه را از داخل ربات تلگرام باز کنید.</p>
+    <!-- Error will be injected here -->
   </div>
 
-  <!-- بخش اصلی (بعد از لاگین) -->
   <div id="activate-section" class="hidden">
     <div style="font-weight: bold; margin-bottom: 16px;">سلام <span id="userNameDisplay"></span> عزیز!</div>
     
@@ -59,39 +56,50 @@
   let currentUsername = '';
   let tgWebApp;
 
-  // اجرای خودکار هنگام لود صفحه
+  function showError(msg) {
+    document.getElementById('loading-section').classList.add('hidden');
+    document.getElementById('error-section').classList.remove('hidden');
+    document.getElementById('error-section').innerHTML = `
+      <p style="color: #EF4444; font-weight: bold; margin-bottom: 8px;">خطا</p>
+      <p style="font-size: 13px; color: #333;">${msg}</p>
+      <p style="font-size: 12px; color: #666; margin-top: 16px;">لطفاً صفحه را ببندید و مجدداً از ربات باز کنید.</p>
+    `;
+  }
+
   window.onload = async function() {
     tgWebApp = window.Telegram.WebApp;
-    tgWebApp.expand(); // تمام صفحه شدن
+    tgWebApp.expand();
 
     const initData = tgWebApp.initData;
 
-    // اگر کاربر از مرورگر عادی وارد شده باشد
     if (!initData) {
-      document.getElementById('loading-section').classList.add('hidden');
-      document.getElementById('error-section').classList.remove('hidden');
+      showError('اطلاعات تلگرام یافت نشد. لطفاً از داخل ربات تلگرام وارد شوید.');
       return;
     }
 
-    // ارسال دیتای تلگرام به بک‌اند برای تایید هویت
     try {
       const res = await fetch('/api/auth/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ initData: initData })
       });
-      const data = await res.json();
+      
+      if (!res.ok) {
+         const errorText = await res.text();
+         throw new Error(`Server returned ${res.status}: ${errorText}`);
+      }
 
+      const data = await res.json();
       if (data.success) {
         currentUsername = data.user.username;
         document.getElementById('userNameDisplay').innerText = data.user.name;
         document.getElementById('loading-section').classList.add('hidden');
         document.getElementById('activate-section').classList.remove('hidden');
       } else {
-        alert('خطا در احراز هویت تلگرام');
+        showError('خطا در احراز هویت: ' + (data.message || 'نامشخص'));
       }
     } catch (e) {
-      alert('خطا در ارتباط با سرور');
+      showError('خطا در ارتباط با سرور: ' + e.message);
     }
   };
 
