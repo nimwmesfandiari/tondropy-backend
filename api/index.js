@@ -15,10 +15,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
 // ==========================================
-// کدهای رابط کاربری (HTML/CSS/JS) - کاربر
+// کدهای HTML کاربر
 // ==========================================
-const userHtml = `
-<!DOCTYPE html>
+const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -52,13 +51,6 @@ const userHtml = `
   .method-card.active { background: rgba(239, 246, 255, 0.9); border-color: var(--brand); box-shadow: 0 8px 24px rgba(10,132,255,0.15); }
   .method-card .check-icon { position: absolute; top: 12px; left: 12px; width: 20px; height: 20px; background: var(--brand); color: white; border-radius: 50%; display: grid; place-items: center; font-size: 12px; opacity: 0; transform: scale(0.5); transition: all 0.2s; }
   .method-card.active .check-icon { opacity: 1; transform: scale(1); }
-  .timeline { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; position: relative; padding: 0 10px; }
-  .timeline::before { content: ''; position: absolute; top: 24px; left: 30px; right: 30px; height: 2px; background: rgba(10,132,255,0.15); z-index: 1; }
-  .timeline-step { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .timeline-circle { width: 48px; height: 48px; border-radius: 50%; background: #fff; border: 2px solid rgba(10,132,255,0.15); color: var(--text-muted); display: grid; place-items: center; font-size: 16px; font-weight: 800; transition: all 0.3s; }
-  .timeline-step.active .timeline-circle { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(10,132,255,0.3); }
-  .timeline-label { font-size: 11px; font-weight: 700; color: var(--text-main); }
-  .timeline-sub { font-size: 10px; color: var(--text-muted); }
   .amount-display { font-size: 32px; font-weight: 900; color: var(--brand); transition: all 0.3s; }
   .fade-transition { animation: fadeScale 0.3s ease; }
   @keyframes fadeScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -82,7 +74,6 @@ const userHtml = `
       <div class="glass-card" style="padding: 16px;"><div class="value-sm">سلام <span id="userNameDisplay" style="color:var(--brand)"></span> عزیز 👋</div><div class="label" style="margin-top:4px;">برای استفاده، حساب خود را فعال کنید.</div></div>
       <div class="glass-card glass-card-blue"><div class="label">هزینه فعال‌سازی</div><div class="value-lg" style="margin:8px 0;">۱۴ <span style="font-size:16px;">دلار</span></div><div class="value-sm" style="color:var(--brand);">معادل ۳,۷۸۰,۰۰۰ تومان</div></div>
       <div class="glass-card"><div class="value-md">روش پرداخت</div><div class="method-grid"><div class="method-card active" id="m-full" onclick="setMethod('full')"><div class="check-icon">✓</div><div class="value-sm">کامل</div><div class="value-blue" style="font-size:18px;">۳,۷۸۰,۰۰۰</div></div><div class="method-card" id="m-inst" onclick="setMethod('installment')"><div class="check-icon">✓</div><div class="value-sm">اقساطی</div><div class="value-blue" style="font-size:18px;">۹۴۵,۰۰۰</div></div></div></div>
-      <div id="installment-section" class="glass-card hidden"><div class="label" style="margin-bottom:16px;">وضعیت اقساط</div><div class="timeline"><div class="timeline-step active"><div class="timeline-circle">۱</div><div class="timeline-label">قسط اول</div></div><div class="timeline-step"><div class="timeline-circle">۲</div><div class="timeline-label">دوم</div></div><div class="timeline-step"><div class="timeline-circle">۳</div><div class="timeline-label">سوم</div></div><div class="timeline-step"><div class="timeline-circle">۴</div><div class="timeline-label">چهارم</div></div></div></div>
       <div class="glass-card"><div class="value-md">کارت به کارت</div><div style="background:rgba(255,255,255,0.4); padding:16px; border-radius:16px; margin-bottom:16px;"><div style="display:flex; justify-content:space-between;"><span class="label">بانک:</span> <span class="value-sm">بانک شهر</span></div><div style="display:flex; justify-content:space-between;"><span class="label">صاحب حساب:</span> <span class="value-sm">نیما اسفندیاری</span></div><div style="display:flex; flex-direction:column; align-items:center; margin-top:8px;"><span class="label">شماره کارت</span><div style="font-size:22px; font-weight:900; direction:ltr; margin-top:4px;">5047061674676966</div></div></div><button class="btn-glass" onclick="copyCard()">کپی شماره کارت</button><div style="margin-top:16px; background:rgba(10,132,255,0.08); padding:16px; border-radius:16px;"><div class="label">مبلغ قابل پرداخت</div><div id="dynamic-amount" class="amount-display" style="margin-top:4px;">۳,۷۸۰,۰۰۰ <span style="font-size:16px;">تومان</span></div><div id="amount-desc" class="label" style="margin-top:4px;">پرداخت یکجا</div></div></div>
       <div class="glass-card"><div class="value-md">ارسال رسید</div><div id="upload-preview" class="hidden file-preview"><img id="preview-img" src=""><div style="display:flex; justify-content:space-between; margin-bottom:12px;"><div><div id="file-name" class="value-sm" style="font-size:12px;"></div></div><button onclick="removeReceipt()" style="width:auto; padding:8px; background:rgba(239,68,68,0.1); color:var(--danger); border-radius:8px; font-size:12px;">حذف</button></div><button id="submit-btn" class="btn-primary" onclick="uploadReceipt()">ارسال رسید</button></div><div id="upload-box-container"><label class="upload-box"><div style="font-size:28px;">📎</div><div style="font-size:14px; color:var(--brand);">انتخاب عکس</div><input type="file" id="receiptFile" accept="image/*" style="display:none;" onchange="handleFile(event)"></label></div></div>
     </div>
@@ -112,104 +103,83 @@ const userHtml = `
   };
   function setHeaderStatus(text, textColor, bgColor, dotColor) { document.getElementById('status-text').innerText = text; document.getElementById('status-text').style.color = textColor; document.getElementById('status-badge').style.background = bgColor; document.getElementById('status-badge').style.color = textColor; document.getElementById('status-dot').style.background = dotColor; }
   function showError(msg) { document.getElementById('loading-section').classList.add('hidden'); document.getElementById('error-section').classList.remove('hidden'); document.getElementById('error-message').innerText = msg; }
-  function setMethod(method) { currentMethod = method; document.getElementById('m-full').classList.remove('active'); document.getElementById('m-inst').classList.remove('active'); document.getElementById('m-' + (method === 'full' ? 'full' : 'inst')).classList.add('active'); const amountEl = document.getElementById('dynamic-amount'); amountEl.classList.remove('fade-transition'); void amountEl.offsetWidth; amountEl.classList.add('fade-transition'); if (method === 'full') { amountEl.innerHTML = '۳,۷۸۰,۰۰۰ <span style="font-size:16px;">تومان</span>'; document.getElementById('amount-desc').innerText = 'پرداخت یکجا'; document.getElementById('installment-section').classList.add('hidden'); } else { amountEl.innerHTML = '۹۴۵,۰۰۰ <span style="font-size:16px;">تومان</span>'; document.getElementById('amount-desc').innerText = 'قسط ۱ از ۴'; document.getElementById('installment-section').classList.remove('hidden'); } }
+  function setMethod(method) { currentMethod = method; document.getElementById('m-full').classList.remove('active'); document.getElementById('m-inst').classList.remove('active'); document.getElementById('m-' + (method === 'full' ? 'full' : 'inst')).classList.add('active'); const amountEl = document.getElementById('dynamic-amount'); amountEl.classList.remove('fade-transition'); void amountEl.offsetWidth; amountEl.classList.add('fade-transition'); if (method === 'full') { amountEl.innerHTML = '۳,۷۸۰,۰۰۰ <span style="font-size:16px;">تومان</span>'; document.getElementById('amount-desc').innerText = 'پرداخت یکجا'; } else { amountEl.innerHTML = '۹۴۵,۰۰۰ <span style="font-size:16px;">تومان</span>'; document.getElementById('amount-desc').innerText = 'قسط ۱ از ۴'; } }
   async function copyCard() { try { await navigator.clipboard.writeText('5047061674676966'); event.target.innerText = 'کپی شد ✓'; setTimeout(() => { event.target.innerText = 'کپی شماره کارت'; }, 2000); } catch (e) {} }
   function handleFile(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { receiptBase64 = e.target.result; document.getElementById('preview-img').src = receiptBase64; document.getElementById('file-name').innerText = file.name; document.getElementById('upload-box-container').classList.add('hidden'); document.getElementById('upload-preview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
   function removeReceipt() { receiptBase64 = ''; document.getElementById('receiptFile').value = ''; document.getElementById('upload-box-container').classList.remove('hidden'); document.getElementById('upload-preview').classList.add('hidden'); }
   async function uploadReceipt() { if (!receiptBase64) return; const btn = document.getElementById('submit-btn'); btn.innerText = 'در حال ارسال...'; btn.disabled = true; try { const res = await fetch('/api/upload-receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUsername, method: currentMethod, amount: currentMethod === 'full' ? '3780000' : '945000', imageBase64: receiptBase64 }) }); const data = await res.json(); if (data.success) { document.getElementById('inactive-section').classList.add('hidden'); document.getElementById('pending-section').classList.remove('hidden'); setHeaderStatus('در انتظار', 'var(--warning)', 'rgba(245,158,11,0.1)', '#F59E0B'); } else { alert('خطا'); btn.innerText = 'ارسال رسید'; btn.disabled = false; } } catch (e) { alert('خطا'); btn.innerText = 'ارسال رسید'; btn.disabled = false; } }
 </script>
 </body>
-</html>
-`;
+</html>`;
 
 // ==========================================
-// کدهای رابط کاربری (HTML) - پنل ادمین
+// کدهای HTML ادمین
 // ==========================================
-const adminHtml = `
-<!DOCTYPE html>
+const adminHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>پنل مدیریت TON Dropy</title>
+<title>پنل مدیریت</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <style>
   body { font-family: 'Vazirmatn', sans-serif; background: #F8FAFC; margin: 0; padding: 20px; direction: rtl; }
   .card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #eee; }
   .title { color: #0A84FF; font-weight: 900; font-size: 20px; margin-bottom: 20px; text-align: center;}
-  .btn { padding: 10px 16px; border-radius: 8px; border: none; font-family: inherit; font-weight: bold; cursor: pointer; flex: 1; }
+  .btn { padding: 10px; border-radius: 8px; border: none; font-family: inherit; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
   .btn-approve { background: #22C55E; color: white; }
   .btn-reject { background: #EF4444; color: white; }
-  img { max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd; }
   .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
 </style>
 </head>
 <body>
   <div class="title">پنل مدیریت TON Dropy</div>
-  <div id="list">در حال دریافت اطلاعات...</div>
-
+  <div id="list">در حال دریافت...</div>
 <script>
   const secret = new URLSearchParams(window.location.search).get('secret');
   if (secret !== 'TondropyAdmin2026') {
     document.getElementById('list').innerHTML = '<div class="card" style="color:red;text-align:center;">دسترسی غیرمجاز!</div>';
-  } else {
-    loadReceipts();
-  }
+  } else { loadReceipts(); }
 
   async function loadReceipts() {
     const res = await fetch('/api/admin/receipts?secret=' + secret);
     const data = await res.json();
     const list = document.getElementById('list');
     list.innerHTML = '';
-
-    if (data.length === 0) {
-      list.innerHTML = '<div class="card" style="text-align:center;">رسید جدیدی برای بررسی وجود ندارد.</div>';
-      return;
-    }
-
+    if (data.length === 0) { list.innerHTML = '<div class="card" style="text-align:center;">رسیدی وجود ندارد.</div>'; return; }
+    
     data.forEach(item => {
-      list.innerHTML += `
-        <div class="card" id="card-${item.id}">
-          <div class="row"><span>کاربر:</span> <b>@${item.users.username} (${item.users.first_name})</b></div>
-          <div class="row"><span>مبلغ:</span> <b>${item.amount} تومان</b></div>
-          <div class="row"><span>روش:</span> <b>${item.method === 'full' ? 'کامل' : 'اقساطی'}</b></div>
-          <img src="${item.image_url}" alt="رسید" />
-          <div style="display:flex; gap:10px; margin-top:15px;">
-            <button class="btn btn-approve" onclick="review('${item.id}', '${item.user_id}', 'approve')">تأیید</button>
-            <button class="btn btn-reject" onclick="review('${item.id}', '${item.user_id}', 'reject')">رد</button>
-          </div>
-        </div>
-      `;
+      const username = item.users ? item.users.username : 'ناشناس';
+      list.innerHTML += '<div class="card" id="card-' + item.id + '">' +
+        '<div class="row"><span>کاربر:</span> <b>@' + username + '</b></div>' +
+        '<div class="row"><span>مبلغ:</span> <b>' + item.amount + ' تومان</b></div>' +
+        '<div class="row"><span>روش:</span> <b>' + (item.method === 'full' ? 'کامل' : 'اقساطی') + '</b></div>' +
+        '<button class="btn btn-approve" onclick="review(\'' + item.id + '\', \'' + item.user_id + '\', \'approve\')">تأیید</button>' +
+        '<button class="btn btn-reject" onclick="review(\'' + item.id + '\', \'' + item.user_id + '\', \'reject\')">رد</button>' +
+      '</div>';
     });
   }
 
   async function review(receiptId, userId, action) {
     if (!confirm('آیا مطمئن هستید؟')) return;
-    
     await fetch('/api/admin/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ receiptId, userId, action, secret })
+      body: JSON.stringify({ receiptId: receiptId, userId: userId, action: action, secret: secret })
     });
-
     document.getElementById('card-' + receiptId).remove();
   }
 </script>
 </body>
-</html>
-`;
+</html>`;
 
 // ==========================================
 // API Routes
 // ==========================================
 
-// ۱. مسیر اصلی (کاربر)
 app.get('/', (req, res) => { res.send(userHtml); });
-
-// ۲. مسیر پنل ادمین
 app.get('/admin', (req, res) => { res.send(adminHtml); });
 
-// ۳. احراز هویت تلگرام
 function verifyTelegramWebAppData(telegramInitData) {
   const initData = new URLSearchParams(telegramInitData);
   const hash = initData.get('hash');
@@ -225,6 +195,7 @@ app.post('/api/auth/telegram', async (req, res) => {
     const { initData } = req.body;
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
+    
     let { data: user } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).single();
     if (!user) {
       const { data: newUser, error } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
@@ -232,56 +203,45 @@ app.post('/api/auth/telegram', async (req, res) => {
       user = newUser;
     }
     res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user', status: user.account_status } });
-  } catch (error) { res.status(500).json({ success: false, message: 'خطای دیتابیس' }); }
+  } catch (error) { res.status(500).json({ success: false, message: 'خطای دیتابیس: ' + error.message }); }
 });
 
-// ۴. ارسال رسید
 app.post('/api/upload-receipt', async (req, res) => {
   try {
     const { username, amount, method, imageBase64 } = req.body;
     if (!imageBase64) return res.status(400).json({ success: false, message: 'عکسی ارسال نشد' });
 
-    // آپلود عکس به Supabase Storage (اختیاری اگر فقط تلگرام مهم است)
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-    const fileName = \`receipt_\${Date.now()}.jpg\`;
-    
-    // در اینجا ما عکس را در Storage آپلود می‌کنیم تا ادمین بتواند ببیند
-    const { data: uploadData, error: uploadError } = await supabase.storage.from('receipts').upload(fileName, buffer, { contentType: 'image/jpeg' });
-    
-    let imageUrl = '';
-    if (!uploadError) {
-       const { data: publicUrlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
-       imageUrl = publicUrlData.publicUrl;
-    }
-
     const { data: user } = await supabase.from('users').select('id').eq('username', username).single();
     if (!user) throw new Error('کاربر یافت نشد');
 
-    await supabase.from('receipts').insert([{ user_id: user.id, amount: parseInt(amount), method, status: 'pending', image_url: imageUrl }]);
+    await supabase.from('receipts').insert([{ user_id: user.id, amount: parseInt(amount), method: method, status: 'pending' }]);
     await supabase.from('users').update({ account_status: 'pending' }).eq('id', user.id);
 
-    // ارسال به تلگرام
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
     const blob = new Blob([buffer], { type: 'image/jpeg' });
+    
     const formData = new FormData();
     formData.append('chat_id', TELEGRAM_CHAT_ID);
-    formData.append('caption', \`🧾 رسید جدید\\n👤 کاربر: @\${username}\\n💰 مبلغ: \${amount}\`);
+    // استفاده از الحاق رشته به جای Template Literal برای جلوگیری از خطای سینتکس
+    const methodText = method === 'installment' ? 'اقساطی' : 'کامل';
+    const caption = "🧾 رسید جدید\n👤 کاربر: @" + username + "\n💰 مبلغ: " + amount + " تومان\n💳 روش: " + methodText;
+    formData.append('caption', caption);
     formData.append('photo', blob, 'receipt.jpg');
-    await fetch(\`https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendPhoto\`, { method: 'POST', body: formData });
+    
+    await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
 
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
-// ۵. دریافت لیست رسیدها (فقط ادمین)
 app.get('/api/admin/receipts', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
-  const { data, error } = await supabase.from('receipts').select('*, users(username, first_name)').eq('status', 'pending');
+  const { data, error } = await supabase.from('receipts').select('*, users(username)').eq('status', 'pending');
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// ۶. تأیید یا رد رسید (فقط ادمین)
 app.post('/api/admin/review', async (req, res) => {
   const { receiptId, userId, action, secret } = req.body;
   if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
