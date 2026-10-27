@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-// ⚠️ توکن جدید ربات تلگرام
+// ⚠️ توکن ربات
 const TELEGRAM_BOT_TOKEN = "8959966218:AAEUympSifPNS_dGRSfvuBajSsijHH6GXgk"; 
 const TELEGRAM_CHAT_ID = "5972276401";
 const ADMIN_SECRET = "TondropyAdmin2026";
@@ -14,11 +14,16 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false } // جلوگیری از خطای fetch در محیط سرور
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
+// ==========================================
+// کدهای HTML کاربر (فرانت‌اند)
+// ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -200,7 +205,17 @@ app.post('/api/auth/telegram', async (req, res) => {
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
     
-    let { data: user } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).single();
+    // استفاده از try/catch داخلی برای خطاهای شبکه
+    let user = null;
+    try {
+      const { data, error } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).single();
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 یعنی کاربر پیدا نشد
+      user = data;
+    } catch (dbError) {
+      console.error("Fetch Error:", dbError);
+      return res.status(500).json({ success: false, message: 'ارتباط با دیتابیس برقرار نشد. (احتمالا پروژه Supabase در حالت Pause است)' });
+    }
+
     if (!user) {
       const { data: newUser, error } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
       if (error) throw error;
