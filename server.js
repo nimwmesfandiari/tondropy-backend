@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path'); // اضافه شده
 const app = express();
 
-// Render به صورت خودکار پورت را تعیین می‌کند
 const port = process.env.PORT || 9090; 
 
 const TELEGRAM_BOT_TOKEN = "8959966218:AAH6lNe8K4UVAeDGJATBdf9Y877SKxPYkho"; 
@@ -11,7 +11,14 @@ const TELEGRAM_CHAT_ID = "5972276401";
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
-app.use(express.static('public'));
+
+// این خط به سرور می‌گوید فایل‌های استاتیک را از کجا بخواند
+app.use(express.static(path.join(__dirname, 'public')));
+
+// این خط تضمین می‌کند که وقتی کاربر وارد سایت می‌شود، فایل HTML باز شود
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 function verifyTelegramWebAppData(telegramInitData) {
   const initData = new URLSearchParams(telegramInitData);
