@@ -5,13 +5,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-const TELEGRAM_BOT_TOKEN = "8959966218:AAH6lNe8K4UVAeDGJATBdf9Y877SKxPYkho"; 
+// ⚠️ توکن جدید ربات تلگرام
+const TELEGRAM_BOT_TOKEN = "8959966218:AAEUympSifPNS_dGRSfvuBajSsijHH6GXgk"; 
 const TELEGRAM_CHAT_ID = "5972276401";
 const ADMIN_SECRET = "TondropyAdmin2026";
 
-// ==========================================
-// کلیدهای دیتابیس (به صورت مستقیم)
-// ==========================================
+// کلیدهای دیتابیس Supabase
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
@@ -21,7 +20,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
 // ==========================================
-// کدهای HTML کاربر
+// کدهای HTML کاربر (فرانت‌اند)
 // ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -183,7 +182,12 @@ const adminHtml = `<!DOCTYPE html>
 // API Routes
 // ==========================================
 
-app.get('/', (req, res) => { res.send(userHtml); });
+// جلوگیری از کش شدن توسط تلگرام
+app.get('/', (req, res) => { 
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.send(userHtml); 
+});
+
 app.get('/admin', (req, res) => { res.send(adminHtml); });
 
 function verifyTelegramWebAppData(telegramInitData) {
