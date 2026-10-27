@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -267,3 +266,7 @@ app.post('/api/admin/review', async (req, res) => {
 });
 
 module.exports = app;
+
+
+
+Fix env vars
