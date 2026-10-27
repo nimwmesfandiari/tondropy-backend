@@ -1,0 +1,14 @@
+{
+  "scripts" : {
+    "start" : "node server.js"
+  },
+  "main" : "server.js",
+  "_id" : "tondropy-backend@1.0.0",
+  "name" : "tondropy-backend",
+  "dependencies" : {
+    "express" : "^4.19.2",
+    "localtunnel" : "^2.0.2",
+    "cors" : "^2.8.5"
+  },
+  "version" : "1.0.0"
+}
