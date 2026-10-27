@@ -9,7 +9,9 @@ const TELEGRAM_BOT_TOKEN = "8959966218:AAH6lNe8K4UVAeDGJATBdf9Y877SKxPYkho";
 const TELEGRAM_CHAT_ID = "5972276401";
 const ADMIN_SECRET = "TondropyAdmin2026";
 
-// کلیدهای دیتابیس به صورت مستقیم
+// ==========================================
+// کلیدهای دیتابیس (به صورت مستقیم)
+// ==========================================
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
@@ -111,7 +113,7 @@ const userHtml = `<!DOCTYPE html>
   async function copyCard() { try { await navigator.clipboard.writeText('5047061674676966'); event.target.innerText = 'کپی شد ✓'; setTimeout(() => { event.target.innerText = 'کپی شماره کارت'; }, 2000); } catch (e) {} }
   function handleFile(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { receiptBase64 = e.target.result; document.getElementById('preview-img').src = receiptBase64; document.getElementById('file-name').innerText = file.name; document.getElementById('upload-box-container').classList.add('hidden'); document.getElementById('upload-preview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
   function removeReceipt() { receiptBase64 = ''; document.getElementById('receiptFile').value = ''; document.getElementById('upload-box-container').classList.remove('hidden'); document.getElementById('upload-preview').classList.add('hidden'); }
-  async function uploadReceipt() { if (!receiptBase64) return; const btn = document.getElementById('submit-btn'); btn.innerText = 'در حال ارسال...'; btn.disabled = true; try { const res = await fetch('/api/upload-receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUsername, method: currentMethod, amount: currentMethod === 'full' ? '3780000' : '945000', imageBase64: receiptBase64 }) }); const data = await res.json(); if (data.success) { document.getElementById('inactive-section').classList.add('hidden'); document.getElementById('pending-section').classList.remove('hidden'); setHeaderStatus('در انتظار', 'var(--warning)', 'rgba(245,158,11,0.1)', '#F59E0B'); } else { alert('خطا'); btn.innerText = 'ارسال رسید'; btn.disabled = false; } } catch (e) { alert('خطا'); btn.innerText = 'ارسال رسید'; btn.disabled = false; } }
+  async function uploadReceipt() { if (!receiptBase64) return; const btn = document.getElementById('submit-btn'); btn.innerText = 'در حال ارسال...'; btn.disabled = true; try { const res = await fetch('/api/upload-receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUsername, method: currentMethod, amount: currentMethod === 'full' ? '3780000' : '945000', imageBase64: receiptBase64 }) }); const data = await res.json(); if (data.success) { document.getElementById('inactive-section').classList.add('hidden'); document.getElementById('pending-section').classList.remove('hidden'); setHeaderStatus('در انتظار', 'var(--warning)', 'rgba(245,158,11,0.1)', '#F59E0B'); } else { alert('خطا: ' + data.message); btn.innerText = 'ارسال رسید'; btn.disabled = false; } } catch (e) { alert('خطا در ارتباط'); btn.innerText = 'ارسال رسید'; btn.disabled = false; } }
 </script>
 </body>
 </html>`;
@@ -259,4 +261,5 @@ app.post('/api/admin/review', async (req, res) => {
   res.json({ success: true });
 });
 
+// بسیار مهم برای Vercel
 module.exports = app;
