@@ -9,13 +9,11 @@ const TELEGRAM_BOT_TOKEN = "8959966218:AAH6lNe8K4UVAeDGJATBdf9Y877SKxPYkho";
 const TELEGRAM_CHAT_ID = "5972276401";
 const ADMIN_SECRET = "TondropyAdmin2026";
 
-// بررسی امنیتی وجود کلیدهای دیتابیس برای جلوگیری از کرش کردن کل سرور
-let supabase = null;
-if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-} else {
-  console.error("WARNING: Supabase URL or Key is missing in Vercel!");
-}
+// کلیدهای دیتابیس به صورت مستقیم
+const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
@@ -198,7 +196,6 @@ function verifyTelegramWebAppData(telegramInitData) {
 
 app.post('/api/auth/telegram', async (req, res) => {
   try {
-    if (!supabase) return res.status(500).json({ success: false, message: 'دیتابیس متصل نیست (کلیدهای ورسل چک شوند)' });
     const { initData } = req.body;
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
@@ -215,7 +212,6 @@ app.post('/api/auth/telegram', async (req, res) => {
 
 app.post('/api/upload-receipt', async (req, res) => {
   try {
-    if (!supabase) return res.status(500).json({ success: false, message: 'دیتابیس متصل نیست' });
     const { username, amount, method, imageBase64 } = req.body;
     if (!imageBase64) return res.status(400).json({ success: false, message: 'عکسی ارسال نشد' });
 
@@ -244,7 +240,6 @@ app.post('/api/upload-receipt', async (req, res) => {
 
 app.get('/api/admin/receipts', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
-  if (!supabase) return res.status(500).json({ error: 'DB not connected' });
   const { data, error } = await supabase.from('receipts').select('*, users(username)').eq('status', 'pending');
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
@@ -253,7 +248,6 @@ app.get('/api/admin/receipts', async (req, res) => {
 app.post('/api/admin/review', async (req, res) => {
   const { receiptId, userId, action, secret } = req.body;
   if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
-  if (!supabase) return res.status(500).json({ error: 'DB not connected' });
 
   if (action === 'approve') {
     await supabase.from('receipts').update({ status: 'approved' }).eq('id', receiptId);
@@ -266,7 +260,3 @@ app.post('/api/admin/review', async (req, res) => {
 });
 
 module.exports = app;
-
-
-
-Fix env vars
