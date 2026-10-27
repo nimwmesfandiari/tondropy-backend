@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TON Dropy</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<style>
+  body { font-family: 'Vazirmatn', sans-serif; background: #F8FAFC; margin: 0; padding: 20px; display: flex; justify-content: center; direction: rtl; }
+  .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid #fff; box-shadow: 0 8px 32px rgba(10,132,255,0.06); border-radius: 28px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
+  .title { font-size: 24px; font-weight: 900; color: #0A84FF; margin-bottom: 20px; }
+  input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid rgba(10,132,255,0.2); border-radius: 16px; font-family: inherit; box-sizing: border-box; }
+  button { width: 100%; padding: 16px; border: none; border-radius: 16px; background: #0A84FF; color: white; font-weight: bold; font-size: 16px; font-family: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+  .method-grid { display: flex; gap: 10px; margin-bottom: 16px; }
+  .method { flex: 1; padding: 16px; border: 2px solid #eee; border-radius: 16px; cursor: pointer; font-size: 14px; }
+  .method.active { border-color: #0A84FF; background: #eff6ff; }
+  .upload-box { border: 2px dashed #0A84FF; padding: 20px; border-radius: 16px; cursor: pointer; margin-bottom: 16px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="glass-card" id="app">
+  <div class="title">TON Dropy</div>
+  
+  <!-- لودینگ اولیه -->
+  <div id="loading-section">
+    <p>در حال بررسی هویت...</p>
+  </div>
+
+  <!-- خطای دسترسی خارج از تلگرام -->
+  <div id="error-section" class="hidden">
+    <p style="color: red;">لطفاً این صفحه را از داخل ربات تلگرام باز کنید.</p>
+  </div>
+
+  <!-- بخش اصلی (بعد از لاگین) -->
+  <div id="activate-section" class="hidden">
+    <div style="font-weight: bold; margin-bottom: 16px;">سلام <span id="userNameDisplay"></span> عزیز!</div>
+    
+    <div class="method-grid">
+      <div class="method active" id="m-full" onclick="setMethod('full')">پرداخت کامل<br>۳,۷۸۰,۰۰۰</div>
+      <div class="method" id="m-inst" onclick="setMethod('installment')">اقساطی<br>۹۴۵,۰۰۰</div>
+    </div>
+
+    <label class="upload-box">
+      <div style="color: #0A84FF; font-weight: bold;">📎 انتخاب عکس رسید</div>
+      <input type="file" id="receiptFile" accept="image/*" style="display:none;" onchange="updateFileLabel()">
+      <div id="fileName" style="margin-top: 8px; font-size: 12px; color: #666;">فایلی انتخاب نشده</div>
+    </label>
+    <button type="button" onclick="uploadReceipt()" style="background: #22C55E;">ارسال رسید به تلگرام</button>
+  </div>
+  
+  <div id="message" style="margin-top: 16px; font-size: 14px; color: green; font-weight: bold;"></div>
+</div>
+
+<script>
+  let currentMethod = 'full';
+  let currentUsername = '';
+  let tgWebApp;
+
+  // اجرای خودکار هنگام لود صفحه
+  window.onload = async function() {
+    tgWebApp = window.Telegram.WebApp;
+    tgWebApp.expand(); // تمام صفحه شدن
+
+    const initData = tgWebApp.initData;
+
+    // اگر کاربر از مرورگر عادی وارد شده باشد
+    if (!initData) {
+      document.getElementById('loading-section').classList.add('hidden');
+      document.getElementById('error-section').classList.remove('hidden');
+      return;
+    }
+
+    // ارسال دیتای تلگرام به بک‌اند برای تایید هویت
+    try {
+      const res = await fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: initData })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentUsername = data.user.username;
+        document.getElementById('userNameDisplay').innerText = data.user.name;
+        document.getElementById('loading-section').classList.add('hidden');
+        document.getElementById('activate-section').classList.remove('hidden');
+      } else {
+        alert('خطا در احراز هویت تلگرام');
+      }
+    } catch (e) {
+      alert('خطا در ارتباط با سرور');
+    }
+  };
+
+  function setMethod(method) {
+    currentMethod = method;
+    document.getElementById('m-full').classList.remove('active');
+    document.getElementById('m-inst').classList.remove('active');
+    document.getElementById('m-' + (method === 'full' ? 'full' : 'inst')).classList.add('active');
+  }
+
+  function updateFileLabel() {
+    const file = document.getElementById('receiptFile').files[0];
+    document.getElementById('fileName').innerText = file ? file.name : 'فایلی انتخاب نشده';
+  }
+
+  async function uploadReceipt() {
+    const fileInput = document.getElementById('receiptFile');
+    if (!fileInput.files.length) return alert('لطفاً عکس رسید را انتخاب کنید');
+
+    const file = fileInput.files[0];
+    document.getElementById('message').innerText = 'در حال پردازش و ارسال...';
+
+    const reader = new FileReader();
+    reader.onload = async function(event) {
+      const base64Image = event.target.result;
+
+      try {
+        const res = await fetch('/api/upload-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentUsername,
+            method: currentMethod,
+            amount: currentMethod === 'full' ? '3780000' : '945000',
+            imageBase64: base64Image
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('message').innerText = '✅ ' + data.message;
+          document.getElementById('activate-section').classList.add('hidden');
+        } else {
+          alert('خطا: ' + data.message);
+        }
+      } catch (e) {
+        alert('خطا در ارتباط با سرور');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
+</body>
+</html>
