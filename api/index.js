@@ -3,6 +3,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const axios = require('axios');
 const https = require('https');
+const http = require('http');
 
 const app = express();
 
@@ -13,7 +14,14 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-// 👈 ساخت یک ایجنت برای اجبار ورسل به استفاده از IPv4 (حل قطعی مشکل شبکه)
+// ==========================================
+// 👈 راه‌حل قطعی مشکل DNS در Vercel
+// ==========================================
+// ورسل از IPv6 پشتیبانی نمی‌کند. Supabase هم روی IPv6 است. 
+// این خطوط به Node.js می‌گویند که حتماً از IPv4 استفاده کند.
+http.globalAgent = new http.Agent({ family: 4 });
+https.globalAgent = new https.Agent({ family: 4 });
+
 const httpsAgent = new https.Agent({ family: 4, keepAlive: true });
 
 const axiosInstance = axios.create({
@@ -24,7 +32,7 @@ const axiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
   },
-  httpsAgent: httpsAgent,
+  httpsAgent: httpsAgent, // استفاده از IPv4 در axios
   timeout: 15000
 });
 
