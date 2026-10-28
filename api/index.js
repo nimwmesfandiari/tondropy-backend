@@ -1,7 +1,3 @@
-// 👈 این خط مشکل fetch failed در ورسل را برای همیشه حل می‌کند
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
-
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -16,7 +12,11 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// 👈 تنظیم Supabase برای جلوگیری از وب‌سوکت (مخصوص ورسل)
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+  realtime: { params: { eventsPerSecond: 2 } }
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
