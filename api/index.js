@@ -165,4 +165,109 @@ const adminHtml = `<!DOCTYPE html>
     await fetch('/api/admin/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ receiptId: receiptId, userId
+      body: JSON.stringify({ receiptId: receiptId, userId: userId, action: action, secret: secret })
+    });
+    document.getElementById('card-' + receiptId).remove();
+  }
+</script>
+</body>
+</html>`;
+
+// ==========================================
+// API Routes
+// ==========================================
+
+app.get('/', (req, res) => { 
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.send(userHtml); 
+});
+
+app.get('/admin', (req, res) => { res.send(adminHtml); });
+
+function verifyTelegramWebAppData(telegramInitData) {
+  const initData = new URLSearchParams(telegramInitData);
+  const hash = initData.get('hash');
+  initData.delete('hash');
+  const dataCheckString = Array.from(initData.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${key}=${value}`).join('\n');
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(TELEGRAM_BOT_TOKEN).digest();
+  const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  return calculatedHash === hash;
+}
+
+app.post('/api/auth/telegram', async (req, res) => {
+  try {
+    const { initData } = req.body;
+    if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
+    const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
+    
+    let user = null;
+    try {
+      const { data, error } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).maybeSingle();
+      if (error) throw error;
+      user = data;
+    } catch (dbError) {
+      return res.status(500).json({ success: false, message: 'خطای ارتباط با Supabase: ' + dbError.message });
+    }
+
+    if (!user) {
+      const { data: newUser, error: insertError } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
+      if (insertError) return res.status(500).json({ success: false, message: 'خطا در ایجاد کاربر: ' + insertError.message });
+      user = newUser;
+    }
+    
+    res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user', status: user.account_status } });
+  } catch (error) { 
+    res.status(500).json({ success: false, message: 'خطای سرور: ' + error.message }); 
+  }
+});
+
+app.post('/api/upload-receipt', async (req, res) => {
+  try {
+    const { username, amount, method, imageBase64 } = req.body;
+    if (!imageBase64) return res.status(400).json({ success: false, message: 'عکسی ارسال نشد' });
+
+    const { data: user } = await supabase.from('users').select('id').eq('username', username).single();
+    if (!user) throw new Error('کاربر یافت نشد');
+
+    await supabase.from('receipts').insert([{ user_id: user.id, amount: parseInt(amount), method: method, status: 'pending' }]);
+    await supabase.from('users').update({ account_status: 'pending' }).eq('id', user.id);
+
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
+    const blob = new Blob([buffer], { type: 'image/jpeg' });
+    
+    const formData = new FormData();
+    formData.append('chat_id', TELEGRAM_CHAT_ID);
+    const methodText = method === 'installment' ? 'اقساطی' : 'کامل';
+    const caption = "🧾 رسید جدید\n👤 کاربر: @" + username + "\n💰 مبلغ: " + amount + " تومان\n💳 روش: " + methodText;
+    formData.append('caption', caption);
+    formData.append('photo', blob, 'receipt.jpg');
+    
+    await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
+
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+});
+
+app.get('/api/admin/receipts', async (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { data, error } = await supabase.from('receipts').select('*, users(username)').eq('status', 'pending');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/admin/review', async (req, res) => {
+  const { receiptId, userId, action, secret } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+
+  if (action === 'approve') {
+    await supabase.from('receipts').update({ status: 'approved' }).eq('id', receiptId);
+    await supabase.from('users').update({ account_status: 'active' }).eq('id', userId);
+  } else {
+    await supabase.from('receipts').update({ status: 'rejected' }).eq('id', receiptId);
+    await supabase.from('users').update({ account_status: 'inactive' }).eq('id', userId);
+  }
+  res.json({ success: true });
+});
+
+module.exports = app;
