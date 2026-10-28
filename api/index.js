@@ -5,24 +5,20 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-// ⚠️ توکن ربات
 const TELEGRAM_BOT_TOKEN = "8959966218:AAEUympSifPNS_dGRSfvuBajSsijHH6GXgk"; 
 const TELEGRAM_CHAT_ID = "5972276401";
 const ADMIN_SECRET = "TondropyAdmin2026";
 
-// کلیدهای دیتابیس Supabase
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false } // جلوگیری از خطای fetch در محیط سرور
-});
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
 // ==========================================
-// کدهای HTML کاربر (فرانت‌اند)
+// کدهای HTML کاربر (همان کدهای قبلی)
 // ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -181,13 +177,23 @@ const adminHtml = `<!DOCTYPE html>
 // API Routes
 // ==========================================
 
-// جلوگیری مطلق از کش شدن
 app.get('/', (req, res) => { 
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.send(userHtml); 
 });
 
 app.get('/admin', (req, res) => { res.send(adminHtml); });
+
+// مسیر تست دیتابیس (برای عیب‌یابی)
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+    if (error) throw error;
+    res.json({ success: true, message: 'اتصال به دیتابیس موفق بود', count: data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'خطای دیتابیس: ' + err.message });
+  }
+});
 
 function verifyTelegramWebAppData(telegramInitData) {
   const initData = new URLSearchParams(telegramInitData);
@@ -205,24 +211,28 @@ app.post('/api/auth/telegram', async (req, res) => {
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
     
-    // استفاده از try/catch داخلی برای خطاهای شبکه
+    // استفاده از maybeSingle برای جلوگیری از خطای "کاربر پیدا نشد"
     let user = null;
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).single();
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 یعنی کاربر پیدا نشد
+      const { data, error } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).maybeSingle();
+      if (error) throw error; // خطاهای واقعی دیتابیس را پرتاب می‌کند
       user = data;
     } catch (dbError) {
-      console.error("Fetch Error:", dbError);
-      return res.status(500).json({ success: false, message: 'ارتباط با دیتابیس برقرار نشد. (احتمالا پروژه Supabase در حالت Pause است)' });
+      // اگر خطای دیتابیس بود، متن دقیق آن را برمی‌گرداند
+      return res.status(500).json({ success: false, message: 'خطای ارتباط با Supabase: ' + dbError.message });
     }
 
     if (!user) {
-      const { data: newUser, error } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
-      if (error) throw error;
+      // اگر کاربر نبود، ثبت‌نامش می‌کند
+      const { data: newUser, error: insertError } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
+      if (insertError) return res.status(500).json({ success: false, message: 'خطا در ایجاد کاربر: ' + insertError.message });
       user = newUser;
     }
+    
     res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user', status: user.account_status } });
-  } catch (error) { res.status(500).json({ success: false, message: 'خطای دیتابیس: ' + error.message }); }
+  } catch (error) { 
+    res.status(500).json({ success: false, message: 'خطای سرور: ' + error.message }); 
+  }
 });
 
 app.post('/api/upload-receipt', async (req, res) => {
