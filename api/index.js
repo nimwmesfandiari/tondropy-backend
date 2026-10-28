@@ -1,6 +1,10 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); // 👈 این خط مشکل fetch failed را در ورسل حل می‌کند
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const nodeFetch = require('node-fetch'); // 👈 استفاده از fetch پایدار
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -12,13 +16,16 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// 👈 به Supabase می‌گوییم از این fetch استفاده کند
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: nodeFetch }
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
 // ==========================================
-// کدهای HTML کاربر (همان کدهای قبلی)
+// کدهای HTML کاربر (فرانت‌اند)
 // ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -184,17 +191,6 @@ app.get('/', (req, res) => {
 
 app.get('/admin', (req, res) => { res.send(adminHtml); });
 
-// مسیر تست دیتابیس (برای عیب‌یابی)
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
-    if (error) throw error;
-    res.json({ success: true, message: 'اتصال به دیتابیس موفق بود', count: data });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'خطای دیتابیس: ' + err.message });
-  }
-});
-
 function verifyTelegramWebAppData(telegramInitData) {
   const initData = new URLSearchParams(telegramInitData);
   const hash = initData.get('hash');
@@ -211,19 +207,16 @@ app.post('/api/auth/telegram', async (req, res) => {
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
     
-    // استفاده از maybeSingle برای جلوگیری از خطای "کاربر پیدا نشد"
     let user = null;
     try {
       const { data, error } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).maybeSingle();
-      if (error) throw error; // خطاهای واقعی دیتابیس را پرتاب می‌کند
+      if (error) throw error;
       user = data;
     } catch (dbError) {
-      // اگر خطای دیتابیس بود، متن دقیق آن را برمی‌گرداند
       return res.status(500).json({ success: false, message: 'خطای ارتباط با Supabase: ' + dbError.message });
     }
 
     if (!user) {
-      // اگر کاربر نبود، ثبت‌نامش می‌کند
       const { data: newUser, error: insertError } = await supabase.from('users').insert([{ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' }]).select().single();
       if (insertError) return res.status(500).json({ success: false, message: 'خطا در ایجاد کاربر: ' + insertError.message });
       user = newUser;
@@ -257,7 +250,8 @@ app.post('/api/upload-receipt', async (req, res) => {
     formData.append('caption', caption);
     formData.append('photo', blob, 'receipt.jpg');
     
-    await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
+    // ارسال با node-fetch برای جلوگیری از خطا
+    await nodeFetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
 
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
