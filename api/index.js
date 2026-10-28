@@ -1,10 +1,10 @@
+// 👈 این دو خط مشکل قطعی اینترنت (fetch failed) را در ورسل برای همیشه حل می‌کند
 const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first'); // 👈 این خط مشکل fetch failed را در ورسل حل می‌کند
+dns.setDefaultResultOrder('ipv4first');
 
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
-const nodeFetch = require('node-fetch'); // 👈 استفاده از fetch پایدار
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -16,16 +16,14 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-// 👈 به Supabase می‌گوییم از این fetch استفاده کند
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  global: { fetch: nodeFetch }
-});
+// اتصال استاندارد به Supabase
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
 
 // ==========================================
-// کدهای HTML کاربر (فرانت‌اند)
+// کدهای HTML کاربر
 // ==========================================
 const userHtml = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -250,8 +248,7 @@ app.post('/api/upload-receipt', async (req, res) => {
     formData.append('caption', caption);
     formData.append('photo', blob, 'receipt.jpg');
     
-    // ارسال با node-fetch برای جلوگیری از خطا
-    await nodeFetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
+    await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
 
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
