@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const axios = require('axios');
+const https = require('https');
 
 const app = express();
 
@@ -10,6 +12,21 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 
 const SUPABASE_URL = "https://vqddirelnxiklanmquuu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
+
+// 👈 ساخت یک ایجنت برای اجبار ورسل به استفاده از IPv4 (حل قطعی مشکل شبکه)
+const httpsAgent = new https.Agent({ family: 4, keepAlive: true });
+
+const axiosInstance = axios.create({
+  baseURL: `${SUPABASE_URL}/rest/v1`,
+  headers: {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  },
+  httpsAgent: httpsAgent,
+  timeout: 15000
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); 
@@ -171,7 +188,7 @@ const adminHtml = `<!DOCTYPE html>
 </html>`;
 
 // ==========================================
-// API Routes (با استفاده از REST API خالص)
+// API Routes
 // ==========================================
 
 app.get('/', (req, res) => { 
@@ -191,36 +208,27 @@ function verifyTelegramWebAppData(telegramInitData) {
   return calculatedHash === hash;
 }
 
-// هدرهای استاندارد برای ارتباط با Supabase REST API
-const sbHeaders = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
-
 app.post('/api/auth/telegram', async (req, res) => {
   try {
     const { initData } = req.body;
     if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success: false, message: 'اطلاعات نامعتبر' });
     const tgUser = JSON.parse(new URLSearchParams(initData).get('user'));
     
-    // 1. چک کردن وجود کاربر
-    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${tgUser.id}`, { headers: sbHeaders });
-    const users = await checkRes.json();
-    
-    let user = users.length > 0 ? users[0] : null;
+    let user = null;
+    try {
+      const checkRes = await axiosInstance.get(`/users?telegram_id=eq.${tgUser.id}`);
+      user = checkRes.data.length > 0 ? checkRes.data[0] : null;
+    } catch (dbError) {
+      return res.status(500).json({ success: false, message: 'خطای ارتباط با دیتابیس: ' + dbError.message });
+    }
 
-    // 2. اگر نبود، ثبت‌نام
     if (!user) {
-      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST',
-        headers: sbHeaders,
-        body: JSON.stringify({ telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' })
-      });
-      const newUsers = await insertRes.json();
-      if (newUsers.length > 0) user = newUsers[0];
-      else throw new Error('خطا در ثبت‌نام کاربر');
+      try {
+        const insertRes = await axiosInstance.post(`/users`, { telegram_id: tgUser.id, first_name: tgUser.first_name, username: tgUser.username || 'user', account_status: 'inactive' });
+        user = insertRes.data[0];
+      } catch (insertError) {
+        return res.status(500).json({ success: false, message: 'خطا در ایجاد کاربر: ' + insertError.message });
+      }
     }
     
     res.json({ success: true, user: { id: tgUser.id, name: tgUser.first_name, username: tgUser.username || 'user', status: user.account_status } });
@@ -234,27 +242,13 @@ app.post('/api/upload-receipt', async (req, res) => {
     const { username, amount, method, imageBase64 } = req.body;
     if (!imageBase64) return res.status(400).json({ success: false, message: 'عکسی ارسال نشد' });
 
-    // 1. پیدا کردن آیدی کاربر
-    const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?username=eq.${username}`, { headers: sbHeaders });
-    const users = await userRes.json();
-    if (users.length === 0) throw new Error('کاربر یافت نشد');
-    const userId = users[0].id;
+    const userRes = await axiosInstance.get(`/users?username=eq.${username}`);
+    if (userRes.data.length === 0) throw new Error('کاربر یافت نشد');
+    const userId = userRes.data[0].id;
 
-    // 2. ثبت رسید
-    await fetch(`${SUPABASE_URL}/rest/v1/receipts`, {
-      method: 'POST',
-      headers: sbHeaders,
-      body: JSON.stringify({ user_id: userId, amount: parseInt(amount), method: method, status: 'pending' })
-    });
+    await axiosInstance.post(`/receipts`, { user_id: userId, amount: parseInt(amount), method: method, status: 'pending' });
+    await axiosInstance.patch(`/users?id=eq.${userId}`, { account_status: 'pending' });
 
-    // 3. تغییر وضعیت کاربر به pending
-    await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: sbHeaders,
-      body: JSON.stringify({ account_status: 'pending' })
-    });
-
-    // 4. ارسال عکس به تلگرام
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, 'base64');
     const blob = new Blob([buffer], { type: 'image/jpeg' });
@@ -266,7 +260,7 @@ app.post('/api/upload-receipt', async (req, res) => {
     formData.append('caption', caption);
     formData.append('photo', blob, 'receipt.jpg');
     
-    await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', { method: 'POST', body: formData });
+    await axios.post('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto', formData, { headers: { 'Content-Type': 'multipart/form-data' }, httpsAgent });
 
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
@@ -275,10 +269,8 @@ app.post('/api/upload-receipt', async (req, res) => {
 app.get('/api/admin/receipts', async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   try {
-    // گرفتن رسیدها همراه با نام کاربری (با استفاده از قابلیت join در Supabase REST)
-    const receiptRes = await fetch(`${SUPABASE_URL}/rest/v1/receipts?status=eq.pending&select=*,users(username)`, { headers: sbHeaders });
-    const data = await receiptRes.json();
-    res.json(data);
+    const receiptRes = await axiosInstance.get(`/receipts?status=eq.pending&select=*,users(username)`);
+    res.json(receiptRes.data);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -288,11 +280,11 @@ app.post('/api/admin/review', async (req, res) => {
 
   try {
     if (action === 'approve') {
-      await fetch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${receiptId}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ status: 'approved' }) });
-      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ account_status: 'active' }) });
+      await axiosInstance.patch(`/receipts?id=eq.${receiptId}`, { status: 'approved' });
+      await axiosInstance.patch(`/users?id=eq.${userId}`, { account_status: 'active' });
     } else {
-      await fetch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${receiptId}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ status: 'rejected' }) });
-      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ account_status: 'inactive' }) });
+      await axiosInstance.patch(`/receipts?id=eq.${receiptId}`, { status: 'rejected' });
+      await axiosInstance.patch(`/users?id=eq.${userId}`, { account_status: 'inactive' });
     }
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
