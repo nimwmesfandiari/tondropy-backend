@@ -19,24 +19,27 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 // SUPABASE
 // ======================================================
 
+// ✅ آدرس صحیح پروژه
 const SUPABASE_URL = "https://vqddirelnxiklannquuu.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGRpcmVsbnhpa2xhbm5xdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTUwMDQsImV4cCI6MjEwODY3MTAwNH0.8DfaBrDuOBnnZM94NbZ_Ia4carmmKOw5vxviZhq_U8";
 
-// 👈 این دو خط بسیار مهم هستند تا ورسل مجبور شود از IPv4 استفاده کند و خطای شبکه ندهد
-http.globalAgent = new http.Agent({ family: 4 });
-https.globalAgent = new https.Agent({ family: 4 });
+// ✅ کلید جدید Publishable (جایگزین کلید قدیمی eyJ شد)
+const SUPABASE_KEY = "sb_publishable_HKtL2jtn5e59R5K8fI9wnQ_tFEm-TJ5";
 
 // ======================================================
 // AXIOS / SUPABASE REST CLIENT
 // ======================================================
 
+// 👈 اجبار به IPv4 برای جلوگیری از خطای شبکه در Vercel
+http.globalAgent = new http.Agent({ family: 4 });
+https.globalAgent = new https.Agent({ family: 4 });
+
 const axiosInstance = axios.create({
   baseURL: `${SUPABASE_URL}/rest/v1`,
   headers: {
-    apikey: SUPABASE_KEY,
-    Authorization: `Bearer ${SUPABASE_KEY}`,
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
     "Content-Type": "application/json",
-    Prefer: "return=representation"
+    "Prefer": "return=representation"
   },
   timeout: 15000
 });
