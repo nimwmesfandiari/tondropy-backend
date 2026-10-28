@@ -2,6 +2,9 @@
   "name": "tondropy-backend",
   "version": "1.0.0",
   "main": "api/index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "cors": "^2.8.5",
