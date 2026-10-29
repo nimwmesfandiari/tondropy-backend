@@ -1,15 +1,12 @@
 const express = require("express");
 const path = require("path");
 
-// Load the existing TON Dropy Express application.
-// Nothing inside api/index.js is removed or modified.
-const app = require("./api/index.js");
+const app = require("./server.js");
 
-// Serve the existing Mini App from public/index.html
+// Serve the existing Mini App
 app.use(express.static(path.join(__dirname, "public")));
 
-// If the request is for the website root,
-// serve the existing Mini App.
+// Main Mini App page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
