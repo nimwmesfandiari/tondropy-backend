@@ -22,28 +22,23 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklannquuu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HKtL2jtn5e59R5K8fI9wnQ_tFEm-TJ5";
 
-// اجبار به IPv4 و کاهش زمان انتظار به 8 ثانیه
+// اجبار به IPv4 برای تلگرام
 const httpsAgent = new https.Agent({ family: 4, keepAlive: true });
 http.globalAgent = new http.Agent({ family: 4 });
 https.globalAgent = httpsAgent;
 
-const axiosInstance = axios.create({
-  baseURL: `${SUPABASE_URL}/rest/v1`,
-  headers: {
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`,
-    "Content-Type": "application/json",
-    "Prefer": "return=representation"
-  },
-  timeout: 8000, // حداکثر 8 ثانیه
-  httpsAgent: httpsAgent
+// 👈 حذف هدر Authorization برای جلوگیری از Hang شدن با کلیدهای جدید Supabase
+const getSupabaseHeaders = () => ({
+  "apikey": SUPABASE_KEY,
+  "Content-Type": "application/json",
+  "Prefer": "return=representation"
 });
 
 app.use(cors());
 app.use(express.json({ limit: "15mb" })); 
 
 // ======================================================
-// TELEGRAM WEB APP HTML (کاربر)
+// TELEGRAM WEB APP HTML
 // ======================================================
 
 const userHtml = `<!DOCTYPE html>
@@ -181,7 +176,12 @@ else { loadReceipts(); }
 
 async function loadReceipts() {
   try {
-    const res = await fetch("/api/admin/receipts?secret=" + encodeURIComponent(secret));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // تایم‌اوت 8 ثانیه‌ای برای جلوگیری از گیر کردن
+
+    const res = await fetch("/api/admin/receipts?secret=" + encodeURIComponent(secret), { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!res.ok) { throw new Error("HTTP error " + res.status); }
     const data = await res.json();
     const list = document.getElementById("list");
@@ -254,14 +254,14 @@ app.post("/api/auth/telegram", async (req, res) => {
     const tgUser = JSON.parse(userString);
     let user = null;
     try {
-      const checkRes = await axiosInstance.get(`/users?telegram_id=eq.${encodeURIComponent(tgUser.id)}`);
+      const checkRes = await axios.get(`${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(tgUser.id)}`, { headers: getSupabaseHeaders() });
       user = checkRes.data.length > 0 ? checkRes.data[0] : null;
     } catch (dbError) {
       return res.status(500).json({ success:false, message: "خطای ارتباط با دیتابیس: " + (dbError.response?.data?.message || dbError.message) });
     }
     if (!user) {
       try {
-        const insertRes = await axiosInstance.post("/users", { telegram_id: tgUser.id, first_name: tgUser.first_name || "", username: tgUser.username || "user", account_status: "inactive" });
+        const insertRes = await axios.post(`${SUPABASE_URL}/rest/v1/users`, { telegram_id: tgUser.id, first_name: tgUser.first_name || "", username: tgUser.username || "user", account_status: "inactive" }, { headers: getSupabaseHeaders() });
         user = insertRes.data[0];
       } catch (insertError) {
         return res.status(500).json({ success:false, message: "خطا در ایجاد کاربر: " + (insertError.response?.data?.message || insertError.message) });
@@ -285,12 +285,12 @@ app.post("/api/upload-receipt", async (req, res) => {
       return res.status(400).json({ success: false, message: "حجم عکس بسیار زیاد است. لطفا عکس کوچکتری انتخاب کنید." });
     }
 
-    const userRes = await axiosInstance.get(`/users?username=eq.${encodeURIComponent(username)}&select=*`);
+    const userRes = await axios.get(`${SUPABASE_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=*`, { headers: getSupabaseHeaders() });
     if (userRes.data.length === 0) throw new Error("کاربر یافت نشد.");
     const userId = userRes.data[0].id;
 
-    await axiosInstance.post("/receipts", { user_id: userId, amount: parseInt(amount, 10), method: method, status: "pending" });
-    await axiosInstance.patch(`/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "pending" });
+    await axios.post(`${SUPABASE_URL}/rest/v1/receipts`, { user_id: userId, amount: parseInt(amount, 10), method: method, status: "pending" }, { headers: getSupabaseHeaders() });
+    await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "pending" }, { headers: getSupabaseHeaders() });
 
     const base64Data = imageBase64.replace(/^data:image\/[^;]+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
@@ -311,36 +311,30 @@ app.post("/api/upload-receipt", async (req, res) => {
 });
 
 // ======================================================
-// ADMIN - RECEIPTS (نسخه سریع و بدون تایم‌اوت)
+// ADMIN - RECEIPTS (با استفاده از Fetch خالص)
 // ======================================================
 
 app.get("/api/admin/receipts", async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
   try {
-    // 1. دریافت لیست رسیدها (بدون Join)
-    const receiptsRes = await axiosInstance.get("/receipts?status=eq.pending");
-    const receipts = receiptsRes.data;
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/receipts?status=eq.pending`, { headers: getSupabaseHeaders() });
+    const receipts = await response.json();
 
-    if (!receipts || receipts.length === 0) {
-      return res.json([]); // اگر رسیدی نبود، همان‌جا تمام می‌کند
+    if (!receipts || !Array.isArray(receipts) || receipts.length === 0) {
+      return res.json([]);
     }
 
-    // 2. دریافت لیست کاربران
-    const usersRes = await axiosInstance.get("/users?select=id,username");
-    const users = usersRes.data;
+    const usersResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username`, { headers: getSupabaseHeaders() });
+    const users = await usersResponse.json();
 
-    // 3. اتصال نام کاربری به هر رسید
     const result = receipts.map(receipt => {
-      const user = users.find(u => u.id === receipt.user_id);
-      return {
-        ...receipt,
-        users: user ? { username: user.username } : { username: "ناشناس" }
-      };
+      const user = Array.isArray(users) ? users.find(u => u.id === receipt.user_id) : null;
+      return { ...receipt, users: user ? { username: user.username } : { username: "ناشناس" } };
     });
 
     return res.json(result);
   } catch (error) {
-    return res.status(500).json({ error: error.response?.data?.message || error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -354,11 +348,11 @@ app.post("/api/admin/review", async (req, res) => {
   if (!receiptId || !userId || !["approve", "reject"].includes(action)) return res.status(400).json({ error: "اطلاعات عملیات نامعتبر است." });
   try {
     if (action === "approve") {
-      await axiosInstance.patch(`/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "approved" });
-      await axiosInstance.patch(`/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "active" });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "approved" }, { headers: getSupabaseHeaders() });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "active" }, { headers: getSupabaseHeaders() });
     } else {
-      await axiosInstance.patch(`/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "rejected" });
-      await axiosInstance.patch(`/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "inactive" });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "rejected" }, { headers: getSupabaseHeaders() });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "inactive" }, { headers: getSupabaseHeaders() });
     }
     return res.json({ success:true });
   } catch (error) { return res.status(500).json({ error: error.response?.data?.message || error.message }); }
