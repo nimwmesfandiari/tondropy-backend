@@ -22,7 +22,7 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklannquuu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HKtL2jtn5e59R5K8fI9wnQ_tFEm-TJ5";
 
-// اجبار به IPv4 برای جلوگیری از خطای شبکه
+// اجبار به IPv4 و کاهش زمان انتظار به 8 ثانیه
 const httpsAgent = new https.Agent({ family: 4, keepAlive: true });
 http.globalAgent = new http.Agent({ family: 4 });
 https.globalAgent = httpsAgent;
@@ -35,7 +35,7 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
     "Prefer": "return=representation"
   },
-  timeout: 20000,
+  timeout: 8000, // حداکثر 8 ثانیه
   httpsAgent: httpsAgent
 });
 
@@ -281,7 +281,6 @@ app.post("/api/upload-receipt", async (req, res) => {
     if (!imageBase64) return res.status(400).json({ success:false, message: "عکسی ارسال نشد." });
     if (!username || !amount || !method) return res.status(400).json({ success:false, message: "اطلاعات رسید ناقص است." });
 
-    // بررسی حجم عکس (حداکثر 4 میلیون کاراکتر برای جلوگیری از کرش کردن ورسل)
     if (imageBase64.length > 4000000) {
       return res.status(400).json({ success: false, message: "حجم عکس بسیار زیاد است. لطفا عکس کوچکتری انتخاب کنید." });
     }
@@ -302,8 +301,7 @@ app.post("/api/upload-receipt", async (req, res) => {
     formData.append("caption", "🧾 رسید جدید\n👤 کاربر: @" + username + "\n💰 مبلغ: " + amount + " تومان\n💳 روش: " + methodText);
     formData.append("photo", new Blob([buffer], { type: "image/jpeg" }), "receipt.jpg");
 
-    // استفاده از httpsAgent برای جلوگیری از خطای شبکه در ارسال به تلگرام
-    const telegramResponse = await axios.post(telegramUrl, formData, { timeout: 30000, httpsAgent: httpsAgent });
+    const telegramResponse = await axios.post(telegramUrl, formData, { timeout: 15000, httpsAgent: httpsAgent });
     if (!telegramResponse.data || !telegramResponse.data.ok) throw new Error("ارسال رسید به تلگرام ناموفق بود.");
 
     return res.json({ success:true });
@@ -313,26 +311,34 @@ app.post("/api/upload-receipt", async (req, res) => {
 });
 
 // ======================================================
-// ADMIN - RECEIPTS
+// ADMIN - RECEIPTS (نسخه سریع و بدون تایم‌اوت)
 // ======================================================
 
 app.get("/api/admin/receipts", async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
   try {
-    const receiptRes = await axiosInstance.get("/receipts?status=eq.pending&order=created_at.desc");
-    let receipts = receiptRes.data || [];
-    
-    if (receipts.length > 0) {
-      const userIds = [...new Set(receipts.map(r => r.user_id))];
-      const usersRes = await axiosInstance.get(`/users?id=in.(${userIds.join(",")})&select=id,username`);
-      const users = usersRes.data || [];
-      
-      receipts = receipts.map(r => {
-        const user = users.find(u => u.id === r.user_id);
-        return { ...r, users: user || { username: "ناشناس" } };
-      });
+    // 1. دریافت لیست رسیدها (بدون Join)
+    const receiptsRes = await axiosInstance.get("/receipts?status=eq.pending");
+    const receipts = receiptsRes.data;
+
+    if (!receipts || receipts.length === 0) {
+      return res.json([]); // اگر رسیدی نبود، همان‌جا تمام می‌کند
     }
-    return res.json(receipts);
+
+    // 2. دریافت لیست کاربران
+    const usersRes = await axiosInstance.get("/users?select=id,username");
+    const users = usersRes.data;
+
+    // 3. اتصال نام کاربری به هر رسید
+    const result = receipts.map(receipt => {
+      const user = users.find(u => u.id === receipt.user_id);
+      return {
+        ...receipt,
+        users: user ? { username: user.username } : { username: "ناشناس" }
+      };
+    });
+
+    return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: error.response?.data?.message || error.message });
   }
