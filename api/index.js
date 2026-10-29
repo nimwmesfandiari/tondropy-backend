@@ -22,7 +22,7 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklannquuu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HKtL2jtn5e59R5K8fI9wnQ_tFEm-TJ5";
 
-// تنظیمات شبکه برای جلوگیری از تایم‌اوت
+// اجبار به IPv4 برای جلوگیری از خطای شبکه
 const httpsAgent = new https.Agent({ family: 4, keepAlive: true });
 http.globalAgent = new http.Agent({ family: 4 });
 https.globalAgent = httpsAgent;
@@ -34,7 +34,7 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
     "Prefer": "return=representation"
   },
-  timeout: 8000, // نهایت 8 ثانیه
+  timeout: 8000,
   httpsAgent: httpsAgent
 });
 
@@ -150,7 +150,7 @@ async function uploadReceipt() {
 </html>`;
 
 // ======================================================
-// ADMIN HTML (نسخه v3 - اضافه شدن مارکر نسخه برای رفع کش)
+// ADMIN HTML (نسخه v4 با تایم‌اوت 10 ثانیه‌ای)
 // ======================================================
 
 const adminHtml = `<!DOCTYPE html>
@@ -171,7 +171,7 @@ body { font-family: 'Vazirmatn', sans-serif; background:#F8FAFC; margin:0; paddi
 </style>
 </head>
 <body>
-<div class="title">پنل مدیریت TON Dropy (v3)</div>
+<div class="title">پنل مدیریت TON Dropy (v4)</div>
 <div id="list">در حال دریافت...</div>
 <script>
 const secret = new URLSearchParams(window.location.search).get("secret");
@@ -179,16 +179,23 @@ if (secret !== "TondropyAdmin2026") { document.getElementById("list").innerHTML 
 else { loadReceipts(); }
 
 async function loadReceipts() {
+  const list = document.getElementById("list");
+  list.innerHTML = "در حال دریافت...";
+
+  // ایجاد تایم‌اوت 10 ثانیه‌ای برای جلوگیری از گیر کردن دائمی
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const res = await fetch("/api/admin/receipts?secret=" + encodeURIComponent(secret));
-    
+    const res = await fetch("/api/admin/receipts?secret=" + encodeURIComponent(secret), { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!res.ok) { 
       const text = await res.text();
-      throw new Error("خطای سرور: " + res.status + " - " + text); 
+      throw new Error("کد " + res.status + " - " + text); 
     }
     
     const data = await res.json();
-    const list = document.getElementById("list");
     list.innerHTML = "";
     if (!Array.isArray(data) || data.length === 0) { list.innerHTML = '<div class="card" style="text-align:center;">رسیدی وجود ندارد.</div>'; return; }
     
@@ -203,7 +210,12 @@ async function loadReceipts() {
       '</div>';
     });
   } catch (error) {
-    document.getElementById("list").innerHTML = '<div class="card" style="color:red;text-align:center;word-break:break-all;">خطا: ' + error.message + '</div>';
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      list.innerHTML = '<div class="card" style="color:red;text-align:center;">خطا: زمان پاسخگویی سرور به پایان رسید (Timeout).</div>';
+    } else {
+      list.innerHTML = '<div class="card" style="color:red;text-align:center;word-break:break-all;">خطا: ' + error.message + '</div>';
+    }
   }
 }
 
@@ -316,21 +328,24 @@ app.post("/api/upload-receipt", async (req, res) => {
 });
 
 // ======================================================
-// ADMIN - RECEIPTS
+// ADMIN - RECEIPTS (بهینه‌سازی شده با Promise.all)
 // ======================================================
 
 app.get("/api/admin/receipts", async (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
   try {
-    const receiptsRes = await axiosInstance.get("/receipts?status=eq.pending");
-    const receipts = receiptsRes.data;
+    // دریافت همزمان لیست رسیدها و کاربران برای افزایش سرعت
+    const [receiptsRes, usersRes] = await Promise.all([
+      axiosInstance.get("/receipts?status=eq.pending"),
+      axiosInstance.get("/users?select=id,username")
+    ]);
 
-    if (!receipts || receipts.length === 0) {
+    const receipts = receiptsRes.data || [];
+    const users = usersRes.data || [];
+
+    if (receipts.length === 0) {
       return res.json([]); 
     }
-
-    const usersRes = await axiosInstance.get("/users?select=id,username");
-    const users = usersRes.data;
 
     const result = receipts.map(receipt => {
       const user = users.find(u => u.id === receipt.user_id);
