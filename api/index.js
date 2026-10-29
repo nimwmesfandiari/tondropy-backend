@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+const axios = require("axios");
 
 const app = express();
 
@@ -19,7 +20,6 @@ const ADMIN_SECRET = "TondropyAdmin2026";
 const SUPABASE_URL = "https://vqddirelnxiklannquuu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HKtL2jtn5e59R5K8fI9wnQ_tFEm-TJ5";
 
-// هدرهای استاندارد و پایدار برای ارتباط با Supabase
 const getSupabaseHeaders = () => ({
   "apikey": SUPABASE_KEY,
   "Content-Type": "application/json",
@@ -138,7 +138,7 @@ async function uploadReceipt() {
 </html>`;
 
 // ======================================================
-// ADMIN HTML (نسخه v5)
+// ADMIN HTML (نسخه v6)
 // ======================================================
 
 const adminHtml = `<!DOCTYPE html>
@@ -159,7 +159,7 @@ body { font-family: 'Vazirmatn', sans-serif; background:#F8FAFC; margin:0; paddi
 </style>
 </head>
 <body>
-<div class="title">پنل مدیریت TON Dropy (v5)</div>
+<div class="title">پنل مدیریت TON Dropy (v6)</div>
 <div id="list">در حال دریافت...</div>
 <script>
 const secret = new URLSearchParams(window.location.search).get("secret");
@@ -169,16 +169,22 @@ else { loadReceipts(); }
 async function loadReceipts() {
   const list = document.getElementById("list");
   list.innerHTML = "در حال دریافت...";
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  
   try {
-    const res = await fetch("/api/admin/receipts?secret=" + encodeURIComponent(secret), { signal: controller.signal });
-    clearTimeout(timeoutId);
+    // درخواست به مسیر جدید و بهینه‌شده
+    const res = await fetch("/api/admin/receipts-v2?secret=" + encodeURIComponent(secret));
     if (!res.ok) { throw new Error("HTTP " + res.status); }
     
     const data = await res.json();
     list.innerHTML = "";
+    
+    if (data.error) {
+       list.innerHTML = '<div class="card" style="color:red;text-align:center;word-break:break-all;">خطای سرور: ' + data.error + '</div>';
+       return;
+    }
+
     if (!Array.isArray(data) || data.length === 0) { list.innerHTML = '<div class="card" style="text-align:center;">رسیدی وجود ندارد.</div>'; return; }
+    
     data.forEach(item => {
       const username = item.users ? item.users.username : "ناشناس";
       list.innerHTML += '<div class="card" id="card-' + item.id + '">' +
@@ -190,8 +196,7 @@ async function loadReceipts() {
       '</div>';
     });
   } catch (error) {
-    clearTimeout(timeoutId);
-    list.innerHTML = '<div class="card" style="color:red;text-align:center;">خطا: ' + error.message + '</div>';
+    list.innerHTML = '<div class="card" style="color:red;text-align:center;">خطا در ارتباط با سرور: ' + error.message + '</div>';
   }
 }
 
@@ -213,13 +218,52 @@ async function review(receiptId, userId, action) {
 // API ROUTES
 // ======================================================
 
+// Route تست دیتابیس (برای عیب‌یابی)
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const response = await axios.get(`${SUPABASE_URL}/rest/v1/users?select=id&limit=1`, { 
+      headers: getSupabaseHeaders(), 
+      timeout: 5000 
+    });
+    res.json({ success: true, message: "اتصال به دیتابیس موفق بود", data: response.data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message, details: error.response?.data });
+  }
+});
+
+// مسیر جدید پنل ادمین با مدیریت تایم‌اوت
+app.get("/api/admin/receipts-v2", async (req, res) => {
+  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
+  try {
+    const receiptsRes = await axios.get(`${SUPABASE_URL}/rest/v1/receipts?status=eq.pending`, { 
+      headers: getSupabaseHeaders(), 
+      timeout: 5000 
+    });
+    
+    const receipts = receiptsRes.data;
+    if (!receipts || receipts.length === 0) return res.json([]);
+
+    const usersRes = await axios.get(`${SUPABASE_URL}/rest/v1/users?select=id,username`, { 
+      headers: getSupabaseHeaders(), 
+      timeout: 5000 
+    });
+    
+    const users = usersRes.data;
+    const result = receipts.map(receipt => {
+      const user = users.find(u => u.id === receipt.user_id);
+      return { ...receipt, users: user ? { username: user.username } : { username: "ناشناس" } };
+    });
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/", (req, res) => { res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate"); res.send(userHtml); });
 app.get("/admin", (req, res) => { res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate"); res.send(adminHtml); });
 
-// ======================================================
-// TELEGRAM INIT DATA VERIFICATION
-// ======================================================
-
+// بقیه مسیرها (Auth, Upload, Review) با استفاده از axios
 function verifyTelegramWebAppData(telegramInitData) {
   try {
     const initData = new URLSearchParams(telegramInitData);
@@ -233,153 +277,65 @@ function verifyTelegramWebAppData(telegramInitData) {
   } catch (error) { return false; }
 }
 
-// ======================================================
-// TELEGRAM AUTH (با Fetch)
-// ======================================================
-
 app.post("/api/auth/telegram", async (req, res) => {
   try {
     const { initData } = req.body;
-    if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success:false, message: "اطلاعات تلگرام نامعتبر است." });
+    if (!initData || !verifyTelegramWebAppData(initData)) return res.status(401).json({ success:false, message: "اطلاعات نامعتبر" });
     const params = new URLSearchParams(initData);
     const userString = params.get("user");
-    if (!userString) return res.status(400).json({ success:false, message: "اطلاعات کاربر تلگرام وجود ندارد." });
     const tgUser = JSON.parse(userString);
     
-    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(tgUser.id)}`, { headers: getSupabaseHeaders() });
-    const users = await checkRes.json();
-    let user = users.length > 0 ? users[0] : null;
+    const checkRes = await axios.get(`${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(tgUser.id)}`, { headers: getSupabaseHeaders(), timeout: 5000 });
+    let user = checkRes.data.length > 0 ? checkRes.data[0] : null;
     
     if (!user) {
-      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: "POST",
-        headers: getSupabaseHeaders(),
-        body: JSON.stringify({ telegram_id: tgUser.id, first_name: tgUser.first_name || "", username: tgUser.username || "user", account_status: "inactive" })
-      });
-      const newUsers = await insertRes.json();
-      user = newUsers[0];
+      const insertRes = await axios.post(`${SUPABASE_URL}/rest/v1/users`, { telegram_id: tgUser.id, first_name: tgUser.first_name || "", username: tgUser.username || "user", account_status: "inactive" }, { headers: getSupabaseHeaders(), timeout: 5000 });
+      user = insertRes.data[0];
     }
     return res.json({ success:true, user: { id: tgUser.id, name: tgUser.first_name || "کاربر", username: tgUser.username || "user", status: user.account_status || "inactive" } });
-  } catch (error) { 
-    return res.status(500).json({ success:false, message: "خطای سرور: " + error.message }); 
-  }
+  } catch (error) { return res.status(500).json({ success:false, message: error.message }); }
 });
-
-// ======================================================
-// UPLOAD RECEIPT (با Fetch)
-// ======================================================
 
 app.post("/api/upload-receipt", async (req, res) => {
   try {
     const { username, amount, method, imageBase64 } = req.body;
-    if (!imageBase64) return res.status(400).json({ success:false, message: "عکسی ارسال نشد." });
-    if (!username || !amount || !method) return res.status(400).json({ success:false, message: "اطلاعات رسید ناقص است." });
+    if (!imageBase64 || !username || !amount || !method) return res.status(400).json({ success:false, message: "اطلاعات ناقص است." });
+    if (imageBase64.length > 4000000) return res.status(400).json({ success: false, message: "حجم عکس زیاد است." });
 
-    if (imageBase64.length > 4000000) {
-      return res.status(400).json({ success: false, message: "حجم عکس بسیار زیاد است." });
-    }
+    const userRes = await axios.get(`${SUPABASE_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, { headers: getSupabaseHeaders(), timeout: 5000 });
+    const userId = userRes.data[0].id;
 
-    const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, { headers: getSupabaseHeaders() });
-    const users = await userRes.json();
-    if (users.length === 0) throw new Error("کاربر یافت نشد.");
-    const userId = users[0].id;
-
-    await fetch(`${SUPABASE_URL}/rest/v1/receipts`, {
-      method: "POST",
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify({ user_id: userId, amount: parseInt(amount, 10), method: method, status: "pending" })
-    });
-
-    await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, {
-      method: "PATCH",
-      headers: getSupabaseHeaders(),
-      body: JSON.stringify({ account_status: "pending" })
-    });
+    await axios.post(`${SUPABASE_URL}/rest/v1/receipts`, { user_id: userId, amount: parseInt(amount, 10), method: method, status: "pending" }, { headers: getSupabaseHeaders(), timeout: 5000 });
+    await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "pending" }, { headers: getSupabaseHeaders(), timeout: 5000 });
 
     const base64Data = imageBase64.replace(/^data:image\/[^;]+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
     const formData = new FormData();
     formData.append("chat_id", TELEGRAM_CHAT_ID);
-    const methodText = method === "installment" ? "اقساطی" : "کامل";
-    formData.append("caption", "🧾 رسید جدید\n👤 کاربر: @" + username + "\n💰 مبلغ: " + amount + " تومان\n💳 روش: " + methodText);
+    formData.append("caption", "🧾 رسید جدید\n👤 کاربر: @" + username + "\n💰 مبلغ: " + amount + " تومان");
     formData.append("photo", new Blob([buffer], { type: "image/jpeg" }), "receipt.jpg");
 
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-      method: "POST",
-      body: formData
-    });
-
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
     const tgData = await telegramResponse.json();
-    if (!tgData.ok) throw new Error("ارسال رسید به تلگرام ناموفق بود.");
+    if (!tgData.ok) throw new Error("ارسال به تلگرام ناموفق بود.");
 
     return res.json({ success:true });
-  } catch (error) {
-    return res.status(500).json({ success:false, message: error.message || "خطا در ارسال رسید." });
-  }
+  } catch (error) { return res.status(500).json({ success:false, message: error.message }); }
 });
-
-// ======================================================
-// ADMIN - RECEIPTS (با Fetch)
-// ======================================================
-
-app.get("/api/admin/receipts", async (req, res) => {
-  if (req.query.secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
-  try {
-    const receiptsRes = await fetch(`${SUPABASE_URL}/rest/v1/receipts?status=eq.pending&limit=50`, { headers: getSupabaseHeaders() });
-    const receipts = await receiptsRes.json();
-
-    if (!Array.isArray(receipts) || receipts.length === 0) {
-      return res.json([]);
-    }
-
-    const userIds = [...new Set(receipts.map(r => r.user_id))].filter(id => id);
-    let users = [];
-    
-    if (userIds.length > 0) {
-      const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=in.(${userIds.join(',')})&select=id,username`, { headers: getSupabaseHeaders() });
-      users = await usersRes.json();
-    }
-
-    const result = receipts.map(receipt => {
-      const user = Array.isArray(users) ? users.find(u => u.id === receipt.user_id) : null;
-      return { ...receipt, users: user ? { username: user.username } : { username: "ناشناس" } };
-    });
-
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// ======================================================
-// ADMIN - REVIEW (با Fetch)
-// ======================================================
 
 app.post("/api/admin/review", async (req, res) => {
   const { receiptId, userId, action, secret } = req.body;
   if (secret !== ADMIN_SECRET) return res.status(403).json({ error: "Forbidden" });
-  if (!receiptId || !userId || !["approve", "reject"].includes(action)) return res.status(400).json({ error: "اطلاعات نامعتبر است." });
-  
   try {
     if (action === "approve") {
-      await fetch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, {
-        method: "PATCH", headers: getSupabaseHeaders(), body: JSON.stringify({ status: "approved" })
-      });
-      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, {
-        method: "PATCH", headers: getSupabaseHeaders(), body: JSON.stringify({ account_status: "active" })
-      });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "approved" }, { headers: getSupabaseHeaders(), timeout: 5000 });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "active" }, { headers: getSupabaseHeaders(), timeout: 5000 });
     } else {
-      await fetch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, {
-        method: "PATCH", headers: getSupabaseHeaders(), body: JSON.stringify({ status: "rejected" })
-      });
-      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, {
-        method: "PATCH", headers: getSupabaseHeaders(), body: JSON.stringify({ account_status: "inactive" })
-      });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/receipts?id=eq.${encodeURIComponent(receiptId)}`, { status: "rejected" }, { headers: getSupabaseHeaders(), timeout: 5000 });
+      await axios.patch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, { account_status: "inactive" }, { headers: getSupabaseHeaders(), timeout: 5000 });
     }
     return res.json({ success:true });
-  } catch (error) { 
-    return res.status(500).json({ error: error.message }); 
-  }
+  } catch (error) { return res.status(500).json({ error: error.message }); }
 });
 
 module.exports = app;
