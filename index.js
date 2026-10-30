@@ -1,5 +1,3 @@
-// TON Dropy - Vercel entry point
+"use strict";
 
-const app = require("./server.js");
-
-module.exports = app;
+module.exports = require("./server");
