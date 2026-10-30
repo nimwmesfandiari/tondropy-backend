@@ -1,3 +1,5 @@
+"use strict";
+
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
@@ -6,2052 +8,1103 @@ const path = require("path");
 
 const app = express();
 
-// ======================================================
-// CONFIG
-// ======================================================
-
-const PORT = process.env.PORT || 3000;
+/* =========================================================
+   CONFIG
+========================================================= */
 
 // Telegram
+// مقادیر فعلی Telegram Bot خودت را در Environment Variables
+// یا مقادیر قبلی پروژه‌ات نگه دار.
 const TELEGRAM_BOT_TOKEN =
-  "8959966218:AAEUympSifPNS_dGRSfvuBajSsijHH6GXgk";
+  process.env.TELEGRAM_BOT_TOKEN || "";
 
 const TELEGRAM_CHAT_ID =
-  "5972276401";
+  process.env.TELEGRAM_CHAT_ID || "";
 
-// Admin
 const ADMIN_SECRET =
-  "TondropyAdmin2026";
+  process.env.ADMIN_SECRET || "TondropyAdmin2026";
 
-// ======================================================
-// SUPABASE
-// ======================================================
-
+// Supabase
 const SUPABASE_URL =
   process.env.SUPABASE_URL ||
   "https://vqddirelnxiklannquuu.supabase.co";
 
 // IMPORTANT:
-// For Vercel/backend use:
-// SUPABASE_SECRET_KEY=sb_secret_...
-//
-// SUPABASE_KEY is also supported for compatibility.
-
+// Secret key MUST NOT be hardcoded in source code.
 const SUPABASE_KEY =
   process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   "";
 
-function supabaseConfigured() {
-  return Boolean(
-    SUPABASE_URL &&
-    SUPABASE_KEY
-  );
-}
-
-function supabaseHeaders() {
-  return {
-    apikey: SUPABASE_KEY,
-    "Content-Type": "application/json",
-    Prefer: "return=representation"
-  };
-}
-
-// ======================================================
-// APP
-// ======================================================
+/* =========================================================
+   APP CONFIG
+========================================================= */
 
 app.disable("x-powered-by");
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: false,
+  })
+);
 
 app.use(
   express.json({
-    limit: "15mb"
+    limit: "12mb",
   })
 );
 
-// ======================================================
-// STATIC FILES
-// ======================================================
-
-const publicDir =
-  path.join(__dirname, "public");
-
-// Main frontend
 app.use(
-  express.static(publicDir, {
-    index: "index.html",
-    extensions: ["html"]
+  express.urlencoded({
+    extended: true,
+    limit: "12mb",
   })
 );
 
-// ======================================================
-// HELPERS
-// ======================================================
+/* =========================================================
+   AXIOS
+========================================================= */
 
-function errorInfo(error) {
-  return {
-    message:
-      error?.message ||
-      "Unknown error",
+const http = axios.create({
+  timeout: 15000,
+});
 
-    status:
-      error?.response?.status ||
-      null,
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
 
-    details:
-      error?.response?.data ||
-      null
-  };
-}
-
-function jsonError(
-  res,
-  status,
-  message,
-  extra = {}
-) {
+function jsonError(res, status, message, extra = {}) {
   return res.status(status).json({
     success: false,
-    message,
-    ...extra
+    error: message,
+    ...extra,
   });
 }
 
-function getAdminSecret(req) {
-  const authorization =
-    req.headers.authorization;
-
-  let bearer = "";
-
-  if (
-    typeof authorization === "string" &&
-    authorization.startsWith("Bearer ")
-  ) {
-    bearer =
-      authorization.substring(7);
+function requireSupabase(res) {
+  if (!SUPABASE_URL) {
+    jsonError(res, 500, "SUPABASE_URL is not configured.");
+    return false;
   }
 
-  return (
-    req.headers["x-admin-secret"] ||
-    req.headers["x-admin-key"] ||
-    req.query?.secret ||
-    req.body?.secret ||
-    bearer ||
-    ""
-  );
-}
-
-function isAdmin(req) {
-  return (
-    String(getAdminSecret(req)) ===
-    String(ADMIN_SECRET)
-  );
-}
-
-function requireSupabase(res) {
-  if (!supabaseConfigured()) {
-    return jsonError(
+  if (!SUPABASE_KEY) {
+    jsonError(
       res,
       500,
-      "کلید Supabase در سرور تنظیم نشده است.",
-      {
-        code: "SUPABASE_KEY_MISSING"
-      }
+      "SUPABASE_SECRET_KEY is not configured on Vercel."
     );
+    return false;
   }
 
-  return null;
+  return true;
 }
 
-function supabaseUrl(pathname) {
-  return (
-    SUPABASE_URL +
-    "/rest/v1/" +
-    pathname
-  );
+function getSupabaseHeaders() {
+  return {
+    apikey: SUPABASE_KEY,
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+  };
 }
 
-// ======================================================
-// TELEGRAM WEB APP VERIFICATION
-// ======================================================
+function supabaseUrl(endpoint) {
+  return `${SUPABASE_URL}/rest/v1/${endpoint}`;
+}
+
+/* =========================================================
+   SUPABASE REQUEST
+========================================================= */
+
+async function supabaseRequest(
+  method,
+  endpoint,
+  data = undefined,
+  params = undefined
+) {
+  const response = await http.request({
+    method,
+    url: supabaseUrl(endpoint),
+    headers: getSupabaseHeaders(),
+    data,
+    params,
+    validateStatus: () => true,
+  });
+
+  if (response.status >= 400) {
+    const error = new Error(
+      response.data?.message ||
+        response.data?.error_description ||
+        response.data?.hint ||
+        `Supabase returned HTTP ${response.status}`
+    );
+
+    error.status = response.status;
+    error.details = response.data;
+
+    throw error;
+  }
+
+  return response.data;
+}
+
+/* =========================================================
+   SUPABASE ERROR
+========================================================= */
+
+function formatSupabaseError(error) {
+  return {
+    message:
+      error?.message ||
+      "Supabase request failed.",
+    status:
+      error?.status ||
+      error?.response?.status ||
+      500,
+    details:
+      error?.details ||
+      error?.response?.data ||
+      null,
+  };
+}
+
+/* =========================================================
+   TELEGRAM WEBAPP VALIDATION
+========================================================= */
 
 function verifyTelegramWebAppData(initData) {
+  if (!initData || !TELEGRAM_BOT_TOKEN) {
+    return {
+      valid: false,
+      reason: "Missing Telegram initData or bot token.",
+    };
+  }
+
   try {
-    if (!initData) {
-      return false;
-    }
+    const params = new URLSearchParams(initData);
 
-    const params =
-      new URLSearchParams(initData);
-
-    const receivedHash =
-      params.get("hash");
+    const receivedHash = params.get("hash");
 
     if (!receivedHash) {
-      return false;
+      return {
+        valid: false,
+        reason: "Telegram hash is missing.",
+      };
     }
 
     params.delete("hash");
 
-    const dataCheckString =
-      Array.from(params.entries())
-        .sort((a, b) =>
-          a[0].localeCompare(b[0])
-        )
-        .map(
-          ([key, value]) =>
-            `${key}=${value}`
-        )
-        .join("\n");
+    const dataCheckString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\n");
 
-    const secretKey =
-      crypto
-        .createHmac(
-          "sha256",
-          "WebAppData"
-        )
-        .update(
-          TELEGRAM_BOT_TOKEN
-        )
-        .digest();
+    const secretKey = crypto
+      .createHmac("sha256", "WebAppData")
+      .update(TELEGRAM_BOT_TOKEN)
+      .digest();
 
-    const calculatedHash =
-      crypto
-        .createHmac(
-          "sha256",
-          secretKey
-        )
-        .update(
-          dataCheckString
-        )
-        .digest("hex");
+    const calculatedHash = crypto
+      .createHmac("sha256", secretKey)
+      .update(dataCheckString)
+      .digest("hex");
 
-    const received =
-      Buffer.from(
-        receivedHash,
-        "hex"
+    const valid =
+      calculatedHash.length === receivedHash.length &&
+      crypto.timingSafeEqual(
+        Buffer.from(calculatedHash),
+        Buffer.from(receivedHash)
       );
 
-    const calculated =
-      Buffer.from(
-        calculatedHash,
-        "hex"
-      );
-
-    if (
-      received.length !==
-      calculated.length
-    ) {
-      return false;
+    if (!valid) {
+      return {
+        valid: false,
+        reason: "Telegram initData signature is invalid.",
+      };
     }
 
-    return crypto.timingSafeEqual(
-      received,
-      calculated
-    );
+    const authDate = Number(params.get("auth_date") || 0);
 
+    if (authDate) {
+      const age = Math.floor(Date.now() / 1000) - authDate;
+
+      // 24 hours
+      if (age > 86400) {
+        return {
+          valid: false,
+          reason: "Telegram initData has expired.",
+        };
+      }
+    }
+
+    let user = null;
+
+    const userRaw = params.get("user");
+
+    if (userRaw) {
+      try {
+        user = JSON.parse(userRaw);
+      } catch {
+        user = null;
+      }
+    }
+
+    return {
+      valid: true,
+      user,
+      params,
+    };
   } catch (error) {
-
-    console.error(
-      "TELEGRAM VERIFY ERROR:",
-      errorInfo(error)
-    );
-
-    return false;
+    return {
+      valid: false,
+      reason: error.message || "Telegram validation failed.",
+    };
   }
 }
 
-// ======================================================
-// TELEGRAM API
-// ======================================================
+/* =========================================================
+   ADMIN AUTH
+========================================================= */
 
-async function sendTelegramMessage(
-  text
-) {
+function verifyAdmin(req) {
+  const headerSecret =
+    req.headers["x-admin-secret"];
+
+  const authorization =
+    req.headers.authorization || "";
+
+  const bearerSecret =
+    authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : "";
+
+  const querySecret =
+    req.query?.secret || "";
+
+  const suppliedSecret =
+    headerSecret ||
+    bearerSecret ||
+    querySecret;
+
+  return (
+    Boolean(suppliedSecret) &&
+    suppliedSecret === ADMIN_SECRET
+  );
+}
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    online: true,
+    service: "TON Dropy Backend",
+    version: "1.0.3",
+    timestamp: new Date().toISOString(),
+    supabaseConfigured: Boolean(SUPABASE_KEY),
+    telegramConfigured: Boolean(TELEGRAM_BOT_TOKEN),
+  });
+});
+
+/* =========================================================
+   TEST DATABASE
+========================================================= */
+
+app.get("/api/test-db", async (req, res) => {
+  if (!requireSupabase(res)) {
+    return;
+  }
+
   try {
-
-    const response =
-      await axios.post(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          chat_id:
-            TELEGRAM_CHAT_ID,
-
-          text
-        },
-        {
-          timeout: 15000
-        }
-      );
-
-    return response.data;
-
-  } catch (error) {
-
-    console.error(
-      "TELEGRAM MESSAGE ERROR:",
-      errorInfo(error)
-    );
-
-    return null;
-  }
-}
-
-// ======================================================
-// DATABASE HELPERS
-// ======================================================
-
-async function getUserByTelegramId(
-  telegramId
-) {
-
-  const response =
-    await axios.get(
-      supabaseUrl(
-        "users?telegram_id=eq." +
-        encodeURIComponent(
-          telegramId
-        ) +
-        "&select=*"
-      ),
+    const users = await supabaseRequest(
+      "GET",
+      "users",
+      undefined,
       {
-        headers:
-          supabaseHeaders(),
-        timeout: 10000
+        select: "*",
+        limit: 5,
+        order: "created_at.desc",
       }
     );
-
-  return (
-    response.data?.[0] ||
-    null
-  );
-}
-
-async function getUserById(
-  userId
-) {
-
-  const response =
-    await axios.get(
-      supabaseUrl(
-        "users?id=eq." +
-        encodeURIComponent(
-          userId
-        ) +
-        "&select=*"
-      ),
-      {
-        headers:
-          supabaseHeaders(),
-        timeout: 10000
-      }
-    );
-
-  return (
-    response.data?.[0] ||
-    null
-  );
-}
-
-async function getReceiptById(
-  receiptId
-) {
-
-  const response =
-    await axios.get(
-      supabaseUrl(
-        "receipts?id=eq." +
-        encodeURIComponent(
-          receiptId
-        ) +
-        "&select=*"
-      ),
-      {
-        headers:
-          supabaseHeaders(),
-        timeout: 10000
-      }
-    );
-
-  return (
-    response.data?.[0] ||
-    null
-  );
-}
-
-// ======================================================
-// HEALTH
-// ======================================================
-
-app.get(
-  "/api/health",
-  function(req, res) {
 
     return res.json({
       success: true,
-      service:
-        "TON Dropy backend",
-      status:
-        "online",
-      supabase:
-        supabaseConfigured()
-          ? "configured"
-          : "missing",
-      time:
-        new Date().toISOString()
+      message: "Supabase connection is working.",
+      count: Array.isArray(users)
+        ? users.length
+        : 0,
+      users,
     });
+  } catch (error) {
+    const details =
+      formatSupabaseError(error);
 
+    return res.status(details.status).json({
+      success: false,
+      error: details.message,
+      status: details.status,
+      details: details.details,
+    });
   }
-);
+});
 
-// ======================================================
-// TEST DATABASE
-// ======================================================
+/* =========================================================
+   TELEGRAM AUTH
+========================================================= */
 
-app.get(
-  "/api/test-db",
-  async function(req, res) {
+app.post("/api/auth/telegram", async (req, res) => {
+  if (!requireSupabase(res)) {
+    return;
+  }
 
-    const configError =
-      requireSupabase(res);
+  const { initData } = req.body || {};
 
-    if (configError) {
-      return configError;
-    }
+  if (!initData) {
+    return jsonError(
+      res,
+      400,
+      "Telegram initData is required."
+    );
+  }
 
-    try {
+  const verification =
+    verifyTelegramWebAppData(initData);
 
-      const response =
-        await axios.get(
-          supabaseUrl(
-            "users?select=id,telegram_id,username&limit=1"
-          ),
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
+  if (!verification.valid) {
+    return jsonError(
+      res,
+      401,
+      verification.reason
+    );
+  }
+
+  const telegramUser =
+    verification.user;
+
+  if (!telegramUser?.id) {
+    return jsonError(
+      res,
+      400,
+      "Telegram user information is missing."
+    );
+  }
+
+  const telegramId =
+    String(telegramUser.id);
+
+  const username =
+    telegramUser.username ||
+    "";
+
+  const firstName =
+    telegramUser.first_name ||
+    "";
+
+  const lastName =
+    telegramUser.last_name ||
+    "";
+
+  try {
+    const existing = await supabaseRequest(
+      "GET",
+      "users",
+      undefined,
+      {
+        select: "*",
+        telegram_id: `eq.${telegramId}`,
+        limit: 1,
+      }
+    );
+
+    if (Array.isArray(existing) && existing.length) {
+      const user = existing[0];
 
       return res.json({
         success: true,
-        message:
-          "اتصال به دیتابیس موفق بود.",
-        data:
-          response.data
-      });
-
-    } catch (error) {
-
-      console.error(
-        "TEST DB ERROR:",
-        errorInfo(error)
-      );
-
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
-        success: false,
-        error:
-          error.message,
-        status:
-          error.response?.status ||
-          null,
-        details:
-          error.response?.data ||
-          null
+        existing: true,
+        user_id: user.id,
+        telegram_id: telegramId,
+        username:
+          user.username || username,
+        account_status:
+          user.account_status ||
+          "inactive",
+        user,
       });
     }
+
+    const created = await supabaseRequest(
+      "POST",
+      "users",
+      {
+        telegram_id: telegramId,
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        account_status: "inactive",
+      }
+    );
+
+    const user =
+      Array.isArray(created)
+        ? created[0]
+        : created;
+
+    return res.json({
+      success: true,
+      existing: false,
+      user_id: user?.id || null,
+      telegram_id: telegramId,
+      username,
+      account_status:
+        user?.account_status ||
+        "inactive",
+      user,
+    });
+  } catch (error) {
+    const details =
+      formatSupabaseError(error);
+
+    return res.status(details.status).json({
+      success: false,
+      error: details.message,
+      status: details.status,
+      details: details.details,
+    });
   }
-);
+});
 
-// ======================================================
-// TELEGRAM AUTH
-// ======================================================
-
-app.post(
-  "/api/auth/telegram",
-  async function(req, res) {
-
-    const configError =
-      requireSupabase(res);
-
-    if (configError) {
-      return configError;
-    }
-
-    try {
-
-      const initData =
-        req.body?.initData;
-
-      if (!initData) {
-
-        return jsonError(
-          res,
-          400,
-          "اطلاعات Telegram ارسال نشده است."
-        );
-      }
-
-      if (
-        !verifyTelegramWebAppData(
-          initData
-        )
-      ) {
-
-        return jsonError(
-          res,
-          401,
-          "اطلاعات Telegram نامعتبر است."
-        );
-      }
-
-      const params =
-        new URLSearchParams(
-          initData
-        );
-
-      const userString =
-        params.get("user");
-
-      if (!userString) {
-
-        return jsonError(
-          res,
-          400,
-          "اطلاعات کاربر Telegram وجود ندارد."
-        );
-      }
-
-      let tgUser;
-
-      try {
-
-        tgUser =
-          JSON.parse(
-            userString
-          );
-
-      } catch {
-
-        return jsonError(
-          res,
-          400,
-          "اطلاعات کاربر Telegram قابل خواندن نیست."
-        );
-      }
-
-      if (!tgUser?.id) {
-
-        return jsonError(
-          res,
-          400,
-          "Telegram ID معتبر نیست."
-        );
-      }
-
-      let user =
-        await getUserByTelegramId(
-          tgUser.id
-        );
-
-      // ------------------------------------------------
-      // CREATE USER
-      // ------------------------------------------------
-
-      if (!user) {
-
-        const insertResponse =
-          await axios.post(
-            supabaseUrl("users"),
-            {
-              telegram_id:
-                tgUser.id,
-
-              first_name:
-                tgUser.first_name ||
-                "",
-
-              last_name:
-                tgUser.last_name ||
-                "",
-
-              username:
-                tgUser.username ||
-                `user_${tgUser.id}`,
-
-              account_status:
-                "inactive"
-            },
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        user =
-          insertResponse.data?.[0] ||
-          null;
-
-        if (!user) {
-
-          throw new Error(
-            "کاربر در Supabase ساخته نشد."
-          );
-        }
-
-      } else {
-
-        // ----------------------------------------------
-        // UPDATE TELEGRAM INFORMATION
-        // ----------------------------------------------
-
-        const updateData = {
-          first_name:
-            tgUser.first_name ||
-            user.first_name ||
-            "",
-
-          last_name:
-            tgUser.last_name ||
-            user.last_name ||
-            "",
-
-          username:
-            tgUser.username ||
-            user.username ||
-            `user_${tgUser.id}`
-        };
-
-        await axios.patch(
-          supabaseUrl(
-            "users?id=eq." +
-            encodeURIComponent(
-              user.id
-            )
-          ),
-          updateData,
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
-
-        user = {
-          ...user,
-          ...updateData
-        };
-      }
-
-      let accountStatus =
-        user.account_status ||
-        user.status ||
-        "inactive";
-
-      // ------------------------------------------------
-      // CHECK PENDING RECEIPT
-      // ------------------------------------------------
-
-      let pendingReceipt = null;
-
-      try {
-
-        const pendingResponse =
-          await axios.get(
-            supabaseUrl(
-              "receipts?user_id=eq." +
-              encodeURIComponent(
-                user.id
-              ) +
-              "&status=eq.pending" +
-              "&select=id,amount,method,status,created_at" +
-              "&limit=1"
-            ),
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        pendingReceipt =
-          pendingResponse.data?.[0] ||
-          null;
-
-      } catch (error) {
-
-        console.error(
-          "PENDING RECEIPT CHECK ERROR:",
-          errorInfo(error)
-        );
-      }
-
-      if (
-        pendingReceipt &&
-        accountStatus !== "blocked"
-      ) {
-        accountStatus =
-          "pending";
-      }
-
-      return res.json({
-        success: true,
-
-        user: {
-          id:
-            user.id,
-
-          telegram_id:
-            tgUser.id,
-
-          name:
-            tgUser.first_name ||
-            user.first_name ||
-            "کاربر",
-
-          username:
-            tgUser.username ||
-            user.username ||
-            `user_${tgUser.id}`,
-
-          status:
-            accountStatus,
-
-          account_status:
-            accountStatus,
-
-          pending_receipt:
-            pendingReceipt
-        }
-      });
-
-    } catch (error) {
-
-      console.error(
-        "AUTH ERROR:",
-        errorInfo(error)
-      );
-
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
-        success: false,
-
-        message:
-          error.message,
-
-        status:
-          error.response?.status ||
-          null,
-
-        details:
-          error.response?.data ||
-          null
-      });
-    }
-  }
-);
-
-// ======================================================
-// UPLOAD RECEIPT
-// ======================================================
+/* =========================================================
+   UPLOAD RECEIPT
+========================================================= */
 
 app.post(
   "/api/upload-receipt",
-  async function(req, res) {
+  async (req, res) => {
+    if (!requireSupabase(res)) {
+      return;
+    }
 
-    const configError =
-      requireSupabase(res);
+    const {
+      telegramId,
+      username,
+      amount,
+      imageData,
+      receipt,
+    } = req.body || {};
 
-    if (configError) {
-      return configError;
+    const finalTelegramId =
+      String(telegramId || "").trim();
+
+    const finalUsername =
+      String(username || "").trim();
+
+    const finalAmount =
+      Number(amount || 0);
+
+    const finalImageData =
+      imageData || receipt || "";
+
+    if (!finalTelegramId) {
+      return jsonError(
+        res,
+        400,
+        "telegramId is required."
+      );
+    }
+
+    if (!finalImageData) {
+      return jsonError(
+        res,
+        400,
+        "Receipt image is required."
+      );
+    }
+
+    if (
+      !/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(
+        finalImageData
+      )
+    ) {
+      return jsonError(
+        res,
+        400,
+        "Receipt must be a valid image data URL."
+      );
+    }
+
+    // Prevent excessively large payloads.
+    if (finalImageData.length > 10 * 1024 * 1024) {
+      return jsonError(
+        res,
+        413,
+        "Receipt image is too large."
+      );
     }
 
     try {
+      const users = await supabaseRequest(
+        "GET",
+        "users",
+        undefined,
+        {
+          select: "*",
+          telegram_id: `eq.${finalTelegramId}`,
+          limit: 1,
+        }
+      );
 
-      const {
-        telegramId,
-        userId,
-        username,
-        amount,
-        method,
-        imageBase64
-      } = req.body || {};
-
-      // ------------------------------------------------
-      // VALIDATION
-      // ------------------------------------------------
-
-      if (
-        !imageBase64 ||
-        !amount ||
-        !method
-      ) {
-
-        return jsonError(
-          res,
-          400,
-          "اطلاعات رسید ناقص است."
-        );
-      }
-
-      if (
-        ![
-          "full",
-          "installment"
-        ].includes(method)
-      ) {
-
-        return jsonError(
-          res,
-          400,
-          "روش پرداخت نامعتبر است."
-        );
-      }
-
-      const numericAmount =
-        Number.parseInt(
-          String(amount),
-          10
-        );
-
-      if (
-        !Number.isFinite(
-          numericAmount
-        ) ||
-        numericAmount <= 0
-      ) {
-
-        return jsonError(
-          res,
-          400,
-          "مبلغ نامعتبر است."
-        );
-      }
-
-      if (
-        imageBase64.length >
-        7000000
-      ) {
-
-        return jsonError(
-          res,
-          400,
-          "حجم عکس رسید زیاد است."
-        );
-      }
-
-      if (
-        !/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(
-          imageBase64
-        )
-      ) {
-
-        return jsonError(
-          res,
-          400,
-          "فرمت تصویر رسید نامعتبر است."
-        );
-      }
-
-      // ------------------------------------------------
-      // FIND USER
-      // ------------------------------------------------
-
-      let user = null;
-
-      // Most reliable
-      if (telegramId) {
-
-        user =
-          await getUserByTelegramId(
-            telegramId
-          );
-      }
-
-      // Fallback
-      if (!user && userId) {
-
-        user =
-          await getUserById(
-            userId
-          );
-      }
-
-      // Backward compatibility only
-      if (!user && username) {
-
-        const response =
-          await axios.get(
-            supabaseUrl(
-              "users?username=eq." +
-              encodeURIComponent(
-                username
-              ) +
-              "&select=*"
-            ),
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        user =
-          response.data?.[0] ||
-          null;
-      }
-
-      if (!user) {
-
+      if (!Array.isArray(users) || !users.length) {
         return jsonError(
           res,
           404,
-          "کاربر در دیتابیس پیدا نشد."
+          "Telegram user was not found."
         );
       }
 
-      // ------------------------------------------------
-      // BLOCKED
-      // ------------------------------------------------
-
-      if (
-        user.account_status ===
-        "blocked"
-      ) {
-
-        return jsonError(
-          res,
-          403,
-          "حساب شما مسدود شده است."
-        );
-      }
-
-      // ------------------------------------------------
-      // ACTIVE USER
-      // ------------------------------------------------
+      const user = users[0];
 
       if (
         user.account_status ===
         "active"
       ) {
-
-        return jsonError(
-          res,
-          409,
-          "حساب شما قبلاً فعال شده است."
-        );
-      }
-
-      // ------------------------------------------------
-      // PREVENT DUPLICATE PENDING
-      // ------------------------------------------------
-
-      const duplicateResponse =
-        await axios.get(
-          supabaseUrl(
-            "receipts?user_id=eq." +
-            encodeURIComponent(
-              user.id
-            ) +
-            "&status=eq.pending" +
-            "&select=id,amount,method,created_at" +
-            "&limit=1"
-          ),
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
-
-      if (
-        Array.isArray(
-          duplicateResponse.data
-        ) &&
-        duplicateResponse.data.length
-      ) {
-
-        return jsonError(
-          res,
-          409,
-          "برای این حساب یک رسید در انتظار بررسی وجود دارد.",
-          {
-            receipt:
-              duplicateResponse.data[0]
-          }
-        );
-      }
-
-      // ------------------------------------------------
-      // CREATE RECEIPT
-      // ------------------------------------------------
-
-      const receiptResponse =
-        await axios.post(
-          supabaseUrl("receipts"),
-          {
-            user_id:
-              user.id,
-
-            amount:
-              numericAmount,
-
-            method:
-              method,
-
-            status:
-              "pending"
-          },
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
-
-      const receipt =
-        receiptResponse.data?.[0] ||
-        null;
-
-      if (!receipt) {
-
-        throw new Error(
-          "رسید در Supabase ثبت نشد."
-        );
-      }
-
-      // ------------------------------------------------
-      // USER -> PENDING
-      // ------------------------------------------------
-
-      await axios.patch(
-        supabaseUrl(
-          "users?id=eq." +
-          encodeURIComponent(
-            user.id
-          )
-        ),
-        {
-          account_status:
-            "pending"
-        },
-        {
-          headers:
-            supabaseHeaders(),
-          timeout: 10000
-        }
-      );
-
-      // ------------------------------------------------
-      // TELEGRAM PHOTO
-      // ------------------------------------------------
-
-      const base64Data =
-        imageBase64.replace(
-          /^data:image\/[^;]+;base64,/,
-          ""
-        );
-
-      const buffer =
-        Buffer.from(
-          base64Data,
-          "base64"
-        );
-
-      const FormDataClass =
-        globalThis.FormData;
-
-      const BlobClass =
-        globalThis.Blob;
-
-      if (
-        !FormDataClass ||
-        !BlobClass
-      ) {
-
-        throw new Error(
-          "Node.js 20 برای ارسال تصویر لازم است."
-        );
-      }
-
-      const formData =
-        new FormDataClass();
-
-      formData.append(
-        "chat_id",
-        TELEGRAM_CHAT_ID
-      );
-
-      const caption =
-        "🧾 رسید جدید\n" +
-        "━━━━━━━━━━━━━━\n" +
-        `👤 کاربر: @${user.username || username || "user"}\n` +
-        `🆔 Telegram ID: ${user.telegram_id || telegramId || "-"}\n` +
-        `💰 مبلغ: ${numericAmount.toLocaleString("fa-IR")} تومان\n` +
-        `💳 روش: ${method === "full" ? "پرداخت کامل" : "اقساطی"}\n` +
-        `🆔 Receipt ID: ${receipt.id}`;
-
-      formData.append(
-        "caption",
-        caption
-      );
-
-      formData.append(
-        "photo",
-        new BlobClass(
-          [buffer],
-          {
-            type:
-              "image/jpeg"
-          }
-        ),
-        "receipt.jpg"
-      );
-
-      const telegramResponse =
-        await fetch(
-          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-          {
-            method: "POST",
-            body: formData
-          }
-        );
-
-      const telegramData =
-        await telegramResponse.json();
-
-      // ------------------------------------------------
-      // TELEGRAM FAILURE
-      // ------------------------------------------------
-
-      if (
-        !telegramResponse.ok ||
-        !telegramData.ok
-      ) {
-
-        console.error(
-          "TELEGRAM SEND PHOTO ERROR:",
-          telegramData
-        );
-
-        return res.status(502).json({
-          success: false,
-
+        return res.json({
+          success: true,
+          alreadyActive: true,
           message:
-            "رسید در دیتابیس ثبت شد، اما ارسال آن به Telegram ناموفق بود.",
-
-          receipt_id:
-            receipt.id,
-
-          telegram_error:
-            telegramData.description ||
-            "Telegram error"
+            "Your account is already active.",
+          user,
         });
       }
 
-      return res.json({
-        success: true,
+      const pendingReceipts =
+        await supabaseRequest(
+          "GET",
+          "receipts",
+          undefined,
+          {
+            select: "id,status,created_at",
+            telegram_id: `eq.${finalTelegramId}`,
+            status: "eq.pending",
+            limit: 1,
+          }
+        );
 
-        message:
-          "رسید با موفقیت ثبت و برای مدیریت ارسال شد.",
+      if (
+        Array.isArray(pendingReceipts) &&
+        pendingReceipts.length
+      ) {
+        return res.status(409).json({
+          success: false,
+          pending: true,
+          message:
+            "A receipt is already waiting for review.",
+          receipt:
+            pendingReceipts[0],
+        });
+      }
 
-        receipt_id:
-          receipt.id
-      });
+      const inserted =
+        await supabaseRequest(
+          "POST",
+          "receipts",
+          {
+            user_id: user.id,
+            telegram_id: finalTelegramId,
+            username:
+              finalUsername ||
+              user.username ||
+              "",
+            amount:
+              finalAmount || null,
+            image_data: finalImageData,
+            status: "pending",
+          }
+        );
 
-    } catch (error) {
+      const newReceipt =
+        Array.isArray(inserted)
+          ? inserted[0]
+          : inserted;
 
-      console.error(
-        "UPLOAD RECEIPT ERROR:",
-        errorInfo(error)
+      await supabaseRequest(
+        "PATCH",
+        "users",
+        {
+          account_status: "pending",
+          updated_at:
+            new Date().toISOString(),
+        },
+        {
+          telegram_id: `eq.${finalTelegramId}`,
+        }
       );
 
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
-        success: false,
+      // Telegram notification is optional.
+      // If Telegram configuration is missing,
+      // the receipt itself is still saved.
+      if (
+        TELEGRAM_BOT_TOKEN &&
+        TELEGRAM_CHAT_ID
+      ) {
+        try {
+          await sendReceiptToTelegram({
+            telegramId:
+              finalTelegramId,
+            username:
+              finalUsername ||
+              user.username ||
+              "",
+            amount:
+              finalAmount,
+            imageData:
+              finalImageData,
+            receiptId:
+              newReceipt?.id || "",
+          });
+        } catch (telegramError) {
+          console.error(
+            "Telegram notification failed:",
+            telegramError.message
+          );
+        }
+      }
 
+      return res.json({
+        success: true,
         message:
-          error.message,
-
-        status:
-          error.response?.status ||
-          null,
-
-        details:
-          error.response?.data ||
-          null
+          "Receipt submitted successfully.",
+        receipt: newReceipt,
+        account_status:
+          "pending",
       });
-    }
-  }
-);
+    } catch (error) {
+      const details =
+        formatSupabaseError(error);
 
-// ======================================================
-// ADMIN CHECK
-// ======================================================
-
-app.get(
-  "/api/admin/check",
-  function(req, res) {
-
-    if (!isAdmin(req)) {
-
-      return res.status(401).json({
+      return res.status(details.status).json({
         success: false,
-        authenticated:
-          false,
-        error:
-          "ADMIN_UNAUTHORIZED"
+        error: details.message,
+        status: details.status,
+        details: details.details,
       });
     }
-
-    return res.json({
-      success: true,
-      authenticated:
-        true,
-      message:
-        "Admin authentication successful"
-    });
   }
 );
 
-// ======================================================
-// ADMIN RECEIPTS
-// ======================================================
+/* =========================================================
+   TELEGRAM RECEIPT NOTIFICATION
+========================================================= */
+
+async function sendReceiptToTelegram({
+  telegramId,
+  username,
+  amount,
+  imageData,
+  receiptId,
+}) {
+  const match = String(imageData).match(
+    /^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i
+  );
+
+  if (!match) {
+    throw new Error(
+      "Invalid receipt image format."
+    );
+  }
+
+  const mimeType = match[1];
+  const base64 = match[2];
+
+  const buffer =
+    Buffer.from(base64, "base64");
+
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+      ? "webp"
+      : "jpg";
+
+  const form = new FormData();
+
+  form.append(
+    "chat_id",
+    TELEGRAM_CHAT_ID
+  );
+
+  const caption = [
+    "TON Dropy",
+    "",
+    "🧾 رسید جدید",
+    `👤 Telegram ID: ${telegramId}`,
+    `🔹 Username: ${
+      username ? "@" + username : "-"
+    }`,
+    `💰 مبلغ: ${
+      amount
+        ? Number(amount).toLocaleString("fa-IR")
+        : "-"
+    }`,
+    `🆔 Receipt ID: ${receiptId || "-"}`,
+    "",
+    "⏳ وضعیت: در انتظار بررسی",
+  ].join("\n");
+
+  form.append(
+    "caption",
+    caption
+  );
+
+  form.append(
+    "photo",
+    new Blob(
+      [buffer],
+      {
+        type: mimeType,
+      }
+    ),
+    `receipt-${Date.now()}.${extension}`
+  );
+
+  const response =
+    await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body: form,
+      }
+    );
+
+  const result =
+    await response.json();
+
+  if (!response.ok || !result.ok) {
+    throw new Error(
+      result?.description ||
+        "Telegram API error."
+    );
+  }
+
+  return result;
+}
+
+/* =========================================================
+   ADMIN - GET RECEIPTS
+========================================================= */
 
 app.get(
   "/api/admin/receipts-v2",
-  async function(req, res) {
-
-    if (!isAdmin(req)) {
-
-      return res.status(401).json({
-        success: false,
-        error:
-          "ADMIN_UNAUTHORIZED",
-        message:
-          "کلید مدیریت نامعتبر است."
-      });
-    }
-
-    const configError =
-      requireSupabase(res);
-
-    if (configError) {
-      return configError;
-    }
-
-    try {
-
-      const receiptsResponse =
-        await axios.get(
-          supabaseUrl(
-            "receipts" +
-            "?status=eq.pending" +
-            "&select=*" +
-            "&order=created_at.desc"
-          ),
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
-
-      const receipts =
-        Array.isArray(
-          receiptsResponse.data
-        )
-          ? receiptsResponse.data
-          : [];
-
-      if (!receipts.length) {
-        return res.json([]);
-      }
-
-      const userIds =
-        [
-          ...new Set(
-            receipts
-              .map(
-                item =>
-                  item.user_id
-              )
-              .filter(Boolean)
-          )
-        ];
-
-      let users = [];
-
-      if (userIds.length) {
-
-        const orQuery =
-          userIds
-            .map(
-              id =>
-                `id.eq.${encodeURIComponent(id)}`
-            )
-            .join(",");
-
-        const usersResponse =
-          await axios.get(
-            supabaseUrl(
-              "users" +
-              "?select=id,telegram_id,username,first_name,last_name,account_status" +
-              `&or=(${orQuery})`
-            ),
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        users =
-          Array.isArray(
-            usersResponse.data
-          )
-            ? usersResponse.data
-            : [];
-      }
-
-      const result =
-        receipts.map(
-          receipt => {
-
-            const user =
-              users.find(
-                item =>
-                  String(item.id) ===
-                  String(
-                    receipt.user_id
-                  )
-              );
-
-            return {
-              ...receipt,
-
-              username:
-                user?.username ||
-                "ناشناس",
-
-              telegram_id:
-                user?.telegram_id ||
-                null,
-
-              first_name:
-                user?.first_name ||
-                "",
-
-              last_name:
-                user?.last_name ||
-                "",
-
-              account_status:
-                user?.account_status ||
-                "inactive",
-
-              users:
-                user
-                  ? {
-                      id:
-                        user.id,
-
-                      username:
-                        user.username,
-
-                      telegram_id:
-                        user.telegram_id,
-
-                      first_name:
-                        user.first_name,
-
-                      last_name:
-                        user.last_name,
-
-                      account_status:
-                        user.account_status
-                    }
-                  : null
-            };
-          }
-        );
-
-      return res.json(result);
-
-    } catch (error) {
-
-      console.error(
-        "ADMIN RECEIPTS ERROR:",
-        errorInfo(error)
+  async (req, res) => {
+    if (!verifyAdmin(req)) {
+      return jsonError(
+        res,
+        401,
+        "Unauthorized."
       );
-
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
-        success: false,
-
-        error:
-          error.message,
-
-        status:
-          error.response?.status ||
-          null,
-
-        details:
-          error.response?.data ||
-          null
-      });
-    }
-  }
-);
-
-// ======================================================
-// ADMIN USERS
-// ======================================================
-
-app.get(
-  "/api/admin/users",
-  async function(req, res) {
-
-    if (!isAdmin(req)) {
-
-      return res.status(401).json({
-        success: false,
-        error:
-          "ADMIN_UNAUTHORIZED"
-      });
     }
 
-    const configError =
-      requireSupabase(res);
-
-    if (configError) {
-      return configError;
+    if (!requireSupabase(res)) {
+      return;
     }
 
     try {
-
-      const response =
-        await axios.get(
-          supabaseUrl(
-            "users?select=*&order=created_at.desc"
-          ),
+      const receipts =
+        await supabaseRequest(
+          "GET",
+          "receipts",
+          undefined,
           {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
+            select: "*",
+            order:
+              "created_at.desc",
           }
         );
 
       return res.json({
         success: true,
-
-        users:
-          Array.isArray(
-            response.data
-          )
-            ? response.data
-            : []
+        receipts:
+          Array.isArray(receipts)
+            ? receipts
+            : [],
       });
-
     } catch (error) {
+      const details =
+        formatSupabaseError(error);
 
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
+      return res.status(details.status).json({
         success: false,
-        error:
-          error.message,
-        status:
-          error.response?.status ||
-          null,
-        details:
-          error.response?.data ||
-          null
+        error: details.message,
+        status: details.status,
+        details: details.details,
       });
     }
   }
 );
 
-// ======================================================
-// ADMIN REVIEW
-// ======================================================
+/* =========================================================
+   ADMIN - REVIEW
+========================================================= */
 
 app.post(
   "/api/admin/review",
-  async function(req, res) {
-
-    if (!isAdmin(req)) {
-
-      return res.status(401).json({
-        success: false,
-        error:
-          "ADMIN_UNAUTHORIZED",
-        message:
-          "دسترسی مدیریت نامعتبر است."
-      });
+  async (req, res) => {
+    if (!verifyAdmin(req)) {
+      return jsonError(
+        res,
+        401,
+        "Unauthorized."
+      );
     }
 
-    const configError =
-      requireSupabase(res);
-
-    if (configError) {
-      return configError;
+    if (!requireSupabase(res)) {
+      return;
     }
 
     const {
       receiptId,
-      action
+      status,
     } = req.body || {};
 
-    if (
-      !receiptId ||
-      ![
-        "approve",
-        "reject"
-      ].includes(action)
-    ) {
-
+    if (!receiptId) {
       return jsonError(
         res,
         400,
-        "اطلاعات عملیات ناقص یا نامعتبر است."
+        "receiptId is required."
+      );
+    }
+
+    if (
+      status !== "approved" &&
+      status !== "rejected"
+    ) {
+      return jsonError(
+        res,
+        400,
+        "status must be approved or rejected."
       );
     }
 
     try {
-
-      // ------------------------------------------------
-      // READ RECEIPT
-      // ------------------------------------------------
-
-      const receipt =
-        await getReceiptById(
-          receiptId
+      // First get the actual receipt.
+      // The browser is NOT trusted for user_id.
+      const receipts =
+        await supabaseRequest(
+          "GET",
+          "receipts",
+          undefined,
+          {
+            select: "*",
+            id: `eq.${receiptId}`,
+            limit: 1,
+          }
         );
 
-      if (!receipt) {
-
+      if (
+        !Array.isArray(receipts) ||
+        !receipts.length
+      ) {
         return jsonError(
           res,
           404,
-          "رسید پیدا نشد."
+          "Receipt not found."
         );
       }
 
-      // ------------------------------------------------
-      // STATUS PROTECTION
-      // ------------------------------------------------
+      const receipt =
+        receipts[0];
 
       if (
-        receipt.status ===
-        "approved"
+        receipt.status !== "pending"
       ) {
-
         return res.status(409).json({
           success: false,
-          code:
-            "ALREADY_APPROVED",
-          message:
-            "این رسید قبلاً تأیید شده است."
+          error:
+            "This receipt has already been reviewed.",
+          current_status:
+            receipt.status,
         });
       }
 
-      if (
-        receipt.status ===
-        "rejected"
-      ) {
+      const newUserStatus =
+        status === "approved"
+          ? "active"
+          : "inactive";
 
-        return res.status(409).json({
-          success: false,
-          code:
-            "ALREADY_REJECTED",
-          message:
-            "این رسید قبلاً رد شده است."
-        });
-      }
+      const reviewedAt =
+        new Date().toISOString();
 
-      const realUserId =
-        receipt.user_id;
-
-      if (!realUserId) {
-
-        return jsonError(
-          res,
-          500,
-          "این رسید به کاربر معتبر متصل نیست."
-        );
-      }
-
-      // ------------------------------------------------
-      // APPROVE
-      // ------------------------------------------------
-
-      if (
-        action ===
-        "approve"
-      ) {
-
-        const updateReceipt =
-          await axios.patch(
-            supabaseUrl(
-              "receipts?id=eq." +
-              encodeURIComponent(
-                receiptId
-              ) +
-              "&status=eq.pending"
-            ),
-            {
-              status:
-                "approved"
-            },
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        if (
-          !Array.isArray(
-            updateReceipt.data
-          ) ||
-          updateReceipt.data.length !== 1
-        ) {
-
-          return res.status(409).json({
-            success: false,
-            code:
-              "RECEIPT_ALREADY_PROCESSED",
-            message:
-              "رسید قبلاً توسط درخواست دیگری پردازش شده است."
-          });
-        }
-
-        try {
-
-          await axios.patch(
-            supabaseUrl(
-              "users?id=eq." +
-              encodeURIComponent(
-                realUserId
-              )
-            ),
-            {
-              account_status:
-                "active"
-            },
-            {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
-            }
-          );
-
-        } catch (userError) {
-
-          // Roll back receipt if user activation fails
-          try {
-
-            await axios.patch(
-              supabaseUrl(
-                "receipts?id=eq." +
-                encodeURIComponent(
-                  receiptId
-                ) +
-                "&status=eq.approved"
-              ),
-              {
-                status:
-                  "pending"
-              },
-              {
-                headers:
-                  supabaseHeaders(),
-                timeout: 10000
-              }
-            );
-
-          } catch (rollbackError) {
-
-            console.error(
-              "APPROVE ROLLBACK ERROR:",
-              errorInfo(
-                rollbackError
-              )
-            );
-          }
-
-          throw userError;
-        }
-
-        await sendTelegramMessage(
-          "✅ پرداخت تأیید شد\n\n" +
-          `🆔 Receipt ID: ${receiptId}\n` +
-          `👤 User ID: ${realUserId}\n` +
-          `💰 مبلغ: ${receipt.amount} تومان`
-        );
-
-        return res.json({
-          success: true,
-          action:
-            "approve",
-          message:
-            "رسید تأیید شد و حساب کاربر فعال شد."
-        });
-      }
-
-      // ------------------------------------------------
-      // REJECT
-      // ------------------------------------------------
-
-      const updateReceipt =
-        await axios.patch(
-          supabaseUrl(
-            "receipts?id=eq." +
-            encodeURIComponent(
-              receiptId
-            ) +
-            "&status=eq.pending"
-          ),
+      // Update receipt first.
+      const updatedReceipts =
+        await supabaseRequest(
+          "PATCH",
+          "receipts",
           {
-            status:
-              "rejected"
+            status,
+            reviewed_at:
+              reviewedAt,
           },
           {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
+            id: `eq.${receiptId}`,
+            status: "eq.pending",
           }
         );
 
       if (
-        !Array.isArray(
-          updateReceipt.data
-        ) ||
-        updateReceipt.data.length !== 1
+        !Array.isArray(updatedReceipts) ||
+        !updatedReceipts.length
       ) {
-
         return res.status(409).json({
           success: false,
-          code:
-            "RECEIPT_ALREADY_PROCESSED",
-          message:
-            "رسید قبلاً توسط درخواست دیگری پردازش شده است."
+          error:
+            "Receipt was already reviewed by another request.",
         });
       }
 
       try {
+        // Update user based on receipt identity.
+        let updatedUsers;
 
-        await axios.patch(
-          supabaseUrl(
-            "users?id=eq." +
-            encodeURIComponent(
-              realUserId
-            )
-          ),
-          {
-            account_status:
-              "inactive"
-          },
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
+        if (receipt.user_id) {
+          updatedUsers =
+            await supabaseRequest(
+              "PATCH",
+              "users",
+              {
+                account_status:
+                  newUserStatus,
+                updated_at:
+                  reviewedAt,
+              },
+              {
+                id: `eq.${receipt.user_id}`,
+              }
+            );
+        } else {
+          updatedUsers =
+            await supabaseRequest(
+              "PATCH",
+              "users",
+              {
+                account_status:
+                  newUserStatus,
+                updated_at:
+                  reviewedAt,
+              },
+              {
+                telegram_id:
+                  `eq.${receipt.telegram_id}`,
+              }
+            );
+        }
 
-      } catch (userError) {
-
-        // Roll back receipt if user update fails
+        return res.json({
+          success: true,
+          message:
+            status === "approved"
+              ? "Receipt approved and user activated."
+              : "Receipt rejected and user deactivated.",
+          receipt:
+            updatedReceipts[0],
+          users:
+            updatedUsers,
+        });
+      } catch (userUpdateError) {
+        // Roll receipt back if user update fails.
         try {
-
-          await axios.patch(
-            supabaseUrl(
-              "receipts?id=eq." +
-              encodeURIComponent(
-                receiptId
-              ) +
-              "&status=eq.rejected"
-            ),
+          await supabaseRequest(
+            "PATCH",
+            "receipts",
             {
-              status:
-                "pending"
+              status: "pending",
+              reviewed_at: null,
             },
             {
-              headers:
-                supabaseHeaders(),
-              timeout: 10000
+              id: `eq.${receiptId}`,
+              status: `eq.${status}`,
             }
           );
-
         } catch (rollbackError) {
-
           console.error(
-            "REJECT ROLLBACK ERROR:",
-            errorInfo(
-              rollbackError
-            )
+            "Receipt rollback failed:",
+            rollbackError.message
           );
         }
 
-        throw userError;
+        throw userUpdateError;
       }
-
-      await sendTelegramMessage(
-        "❌ رسید رد شد\n\n" +
-        `🆔 Receipt ID: ${receiptId}\n` +
-        `👤 User ID: ${realUserId}`
-      );
-
-      return res.json({
-        success: true,
-        action:
-          "reject",
-        message:
-          "رسید رد شد و حساب کاربر غیرفعال شد."
-      });
-
     } catch (error) {
+      const details =
+        formatSupabaseError(error);
 
-      console.error(
-        "ADMIN REVIEW ERROR:",
-        errorInfo(error)
-      );
-
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
+      return res.status(details.status).json({
         success: false,
-
-        error:
-          error.message,
-
-        status:
-          error.response?.status ||
-          null,
-
-        details:
-          error.response?.data ||
-          null
+        error: details.message,
+        status: details.status,
+        details: details.details,
       });
     }
   }
 );
 
-// ======================================================
-// ADMIN USER STATUS
-// ======================================================
+/* =========================================================
+   ADMIN PAGE
+========================================================= */
 
-app.post(
-  "/api/admin/user-status",
-  async function(req, res) {
+app.get("/admin", (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      "public",
+      "admin.html"
+    )
+  );
+});
 
-    if (!isAdmin(req)) {
-
-      return res.status(401).json({
-        success: false,
-        error:
-          "ADMIN_UNAUTHORIZED"
-      });
-    }
-
-    const configError =
-      requireSupabase(res);
-
-    if (configError) {
-      return configError;
-    }
-
-    const {
-      userId,
-      action
-    } = req.body || {};
-
-    if (
-      !userId ||
-      ![
-        "block",
-        "unblock"
-      ].includes(action)
-    ) {
-
-      return jsonError(
-        res,
-        400,
-        "اطلاعات وضعیت کاربر نامعتبر است."
-      );
-    }
-
-    try {
-
-      const newStatus =
-        action === "block"
-          ? "blocked"
-          : "inactive";
-
-      const response =
-        await axios.patch(
-          supabaseUrl(
-            "users?id=eq." +
-            encodeURIComponent(
-              userId
-            )
-          ),
-          {
-            account_status:
-              newStatus
-          },
-          {
-            headers:
-              supabaseHeaders(),
-            timeout: 10000
-          }
-        );
-
-      return res.json({
-        success: true,
-
-        status:
-          newStatus,
-
-        updated:
-          Array.isArray(
-            response.data
-          )
-            ? response.data.length
-            : 0,
-
-        message:
-          action === "block"
-            ? "کاربر مسدود شد."
-            : "مسدودی کاربر برداشته شد."
-      });
-
-    } catch (error) {
-
-      return res.status(
-        error.response?.status === 401
-          ? 401
-          : 500
-      ).json({
-        success: false,
-        error:
-          error.message,
-        status:
-          error.response?.status ||
-          null,
-        details:
-          error.response?.data ||
-          null
-      });
-    }
-  }
-);
-
-// ======================================================
-// ADMIN PAGE
-// ======================================================
-
-app.get(
-  "/admin",
-  function(req, res) {
-
-    res.setHeader(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-
-    return res.sendFile(
-      path.join(
-        publicDir,
-        "admin.html"
-      )
-    );
-  }
-);
-
-app.get(
-  "/admin/",
-  function(req, res) {
-
-    res.setHeader(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-
-    return res.sendFile(
-      path.join(
-        publicDir,
-        "admin.html"
-      )
-    );
-  }
-);
-
-// ======================================================
-// ROOT
-// ======================================================
-
-app.get(
-  "/",
-  function(req, res) {
-
-    return res.sendFile(
-      path.join(
-        publicDir,
-        "index.html"
-      )
-    );
-  }
-);
-
-// ======================================================
-// 404 API
-// ======================================================
+/* =========================================================
+   STATIC FRONTEND
+========================================================= */
 
 app.use(
-  "/api",
-  function(req, res) {
+  express.static(
+    path.join(__dirname, "public"),
+    {
+      index: "index.html",
+    }
+  )
+);
 
+/* =========================================================
+   404
+========================================================= */
+
+app.use((req, res) => {
+  if (
+    req.path.startsWith("/api/")
+  ) {
     return res.status(404).json({
       success: false,
-      message:
-        "API endpoint پیدا نشد."
+      error: "API route not found.",
+      path: req.path,
     });
   }
-);
 
-// ======================================================
-// ERROR HANDLER
-// ======================================================
+  return res.status(404).send(
+    "TON Dropy - Page not found."
+  );
+});
+
+/* =========================================================
+   GLOBAL ERROR
+========================================================= */
 
 app.use(
-  function(error, req, res, next) {
-
+  (error, req, res, next) => {
     console.error(
-      "GLOBAL ERROR:",
-      errorInfo(error)
+      "Unhandled error:",
+      error
     );
 
     if (res.headersSent) {
@@ -2060,34 +1113,15 @@ app.use(
 
     return res.status(500).json({
       success: false,
-      message:
-        "خطای داخلی سرور.",
       error:
-        error.message
+        error?.message ||
+        "Internal server error.",
     });
   }
 );
 
-// ======================================================
-// LOCAL SERVER
-// ======================================================
-
-if (require.main === module) {
-
-  app.listen(
-    PORT,
-    function() {
-
-      console.log(
-        `TON Dropy backend running on port ${PORT}`
-      );
-
-    }
-  );
-}
-
-// ======================================================
-// EXPORT
-// ======================================================
+/* =========================================================
+   VERCEL EXPORT
+========================================================= */
 
 module.exports = app;
