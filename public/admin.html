@@ -2,12 +2,11 @@
 <html lang="fa" dir="rtl">
 
 <head>
-
 <meta charset="UTF-8">
 
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
 >
 
 <title>TON Dropy - پنل مدیریت</title>
@@ -19,15 +18,13 @@
   -webkit-tap-highlight-color:transparent;
 }
 
-html,
-body{
+html,body{
   margin:0;
   padding:0;
   min-height:100%;
 }
 
 body{
-
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -38,386 +35,322 @@ body{
 
   background:
     radial-gradient(
-      circle at top right,
-      rgba(10,132,255,.16),
+      circle at 100% 0%,
+      rgba(10,132,255,.14),
       transparent 35%
     ),
     radial-gradient(
-      circle at bottom left,
-      rgba(0,122,255,.10),
+      circle at 0% 100%,
+      rgba(10,132,255,.08),
       transparent 35%
     ),
-    #f5f7fb;
+    #f4f7fc;
 
   color:#111827;
 
-  padding:18px;
-
+  padding:14px;
 }
 
 .container{
-
   width:100%;
   max-width:900px;
-  margin:0 auto;
-
+  margin:auto;
 }
 
+/* HEADER */
+
 .header{
+  background:rgba(255,255,255,.84);
+  backdrop-filter:blur(25px);
+  -webkit-backdrop-filter:blur(25px);
 
-  background:
-    rgba(255,255,255,.78);
-
-  backdrop-filter:
-    blur(24px);
-
-  -webkit-backdrop-filter:
-    blur(24px);
-
-  border:
-    1px solid rgba(255,255,255,.9);
-
+  border:1px solid rgba(255,255,255,.95);
   border-radius:28px;
 
   padding:20px;
 
   box-shadow:
-    0 12px 40px rgba(0,0,0,.07);
+    0 15px 45px rgba(0,0,0,.07);
 
-  margin-bottom:16px;
-
+  margin-bottom:15px;
 }
 
 .header-top{
-
   display:flex;
-
   align-items:center;
-
   justify-content:space-between;
-
   gap:12px;
-
 }
 
 .title{
-
-  font-size:23px;
-
+  color:#347ff0;
+  font-size:25px;
   font-weight:900;
-
-  color:#0A84FF;
-
 }
 
 .subtitle{
-
-  font-size:13px;
-
   color:#64748b;
-
-  margin-top:5px;
-
+  font-size:13px;
+  margin-top:6px;
 }
 
-.status{
-
+.online{
   display:flex;
-
   align-items:center;
-
   gap:7px;
 
-  background:
-    rgba(34,197,94,.10);
-
+  background:#eaf8ef;
   color:#16a34a;
 
   border-radius:999px;
 
-  padding:8px 12px;
+  padding:9px 13px;
 
   font-size:12px;
-
-  font-weight:800;
-
+  font-weight:900;
 }
 
-.status-dot{
-
-  width:8px;
-  height:8px;
+.online-dot{
+  width:9px;
+  height:9px;
 
   border-radius:50%;
 
   background:#22c55e;
-
 }
 
 .controls{
-
   display:flex;
-
   gap:10px;
 
   margin-top:18px;
-
-}
-
-button{
-
-  border:0;
-
-  font-family:inherit;
-
-  cursor:pointer;
-
-  transition:.2s;
-
-}
-
-button:active{
-
-  transform:scale(.97);
-
 }
 
 .refresh{
-
   flex:1;
 
-  padding:14px;
-
+  border:0;
   border-radius:17px;
 
-  background:#0A84FF;
+  padding:15px;
 
+  background:#3b82f6;
   color:white;
 
+  font-family:inherit;
   font-size:15px;
-
-  font-weight:800;
+  font-weight:900;
 
   box-shadow:
-    0 8px 22px rgba(10,132,255,.22);
+    0 9px 24px rgba(59,130,246,.25);
+}
 
+.refresh:disabled{
+  opacity:.65;
 }
 
 .logout{
-
-  padding:14px 18px;
-
+  border:1px solid #e2e8f0;
   border-radius:17px;
 
-  background:
-    rgba(255,255,255,.8);
+  padding:15px 20px;
 
+  background:white;
   color:#475569;
 
-  border:
-    1px solid rgba(148,163,184,.25);
-
-  font-weight:700;
-
+  font-family:inherit;
+  font-weight:800;
 }
 
-.info{
+/* MESSAGE */
 
-  background:
-    rgba(255,255,255,.72);
+.message{
+  display:none;
 
-  backdrop-filter:blur(20px);
+  border-radius:18px;
 
-  border-radius:22px;
+  padding:14px 16px;
+
+  margin-bottom:15px;
+
+  font-size:13px;
+  line-height:1.8;
+
+  font-weight:800;
+}
+
+.message.show{
+  display:block;
+}
+
+.message.success{
+  background:#ecfdf3;
+  color:#15803d;
+  border:1px solid #bbf7d0;
+}
+
+.message.error{
+  background:#fef2f2;
+  color:#b91c1c;
+  border:1px solid #fecaca;
+}
+
+.message.info{
+  background:#eff6ff;
+  color:#075985;
+  border:1px solid #bfdbfe;
+}
+
+/* STATS */
+
+.stats-card{
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:25px;
 
   padding:18px;
 
-  margin-bottom:16px;
+  box-shadow:
+    0 10px 35px rgba(0,0,0,.05);
 
-  border:
-    1px solid rgba(255,255,255,.9);
-
+  margin-bottom:15px;
 }
 
-.info-title{
-
-  font-size:14px;
-
+.stats-title{
+  font-size:18px;
   font-weight:900;
 
-  margin-bottom:12px;
-
+  margin-bottom:15px;
 }
 
 .stats{
-
   display:grid;
 
   grid-template-columns:
     repeat(3,1fr);
 
   gap:10px;
-
 }
 
 .stat{
-
-  background:
-    rgba(248,250,252,.85);
+  background:#f8fafc;
 
   border-radius:17px;
 
-  padding:14px 8px;
+  padding:14px 7px;
 
   text-align:center;
-
 }
 
 .stat-number{
-
   font-size:22px;
-
   font-weight:900;
 
+  color:#111827;
 }
 
 .stat-label{
+  color:#64748b;
 
   font-size:11px;
 
-  color:#64748b;
-
-  margin-top:4px;
-
+  margin-top:5px;
 }
 
-#message{
+/* CONTENT */
 
-  display:none;
+.loading,
+.empty,
+.error{
+  background:rgba(255,255,255,.84);
 
-  border-radius:18px;
+  border:1px solid rgba(255,255,255,.95);
 
-  padding:15px;
+  border-radius:25px;
 
-  margin-bottom:16px;
-
-  font-size:13px;
-
-  line-height:1.8;
-
-  font-weight:700;
-
-}
-
-.message-error{
-
-  display:block !important;
-
-  background:
-    rgba(239,68,68,.09);
-
-  color:#b91c1c;
-
-  border:
-    1px solid rgba(239,68,68,.15);
-
-}
-
-.message-success{
-
-  display:block !important;
-
-  background:
-    rgba(34,197,94,.09);
-
-  color:#15803d;
-
-  border:
-    1px solid rgba(34,197,94,.15);
-
-}
-
-.message-info{
-
-  display:block !important;
-
-  background:
-    rgba(10,132,255,.08);
-
-  color:#075985;
-
-  border:
-    1px solid rgba(10,132,255,.15);
-
-}
-
-.loading{
-
-  background:
-    rgba(255,255,255,.78);
-
-  border-radius:24px;
-
-  padding:40px 20px;
+  padding:45px 20px;
 
   text-align:center;
 
   box-shadow:
-    0 8px 30px rgba(0,0,0,.05);
-
+    0 10px 35px rgba(0,0,0,.05);
 }
 
 .spinner{
+  width:44px;
+  height:44px;
 
-  width:38px;
-  height:38px;
-
-  border:
-    4px solid rgba(10,132,255,.15);
-
-  border-top-color:#0A84FF;
+  margin:0 auto 17px;
 
   border-radius:50%;
 
+  border:5px solid #dbeafe;
+  border-top-color:#3b82f6;
+
   animation:
     spin .8s linear infinite;
-
-  margin:
-    0 auto 15px;
-
 }
 
 @keyframes spin{
-
   to{
     transform:rotate(360deg);
   }
-
 }
 
+.loading-text{
+  font-size:16px;
+  font-weight:800;
+}
+
+.empty-icon{
+  font-size:48px;
+  margin-bottom:10px;
+}
+
+.empty-title{
+  font-size:18px;
+  font-weight:900;
+}
+
+.empty-text{
+  color:#64748b;
+  font-size:13px;
+  margin-top:8px;
+}
+
+.error-title{
+  color:#b91c1c;
+  font-size:18px;
+  font-weight:900;
+}
+
+.error-text{
+  color:#7f1d1d;
+  margin-top:10px;
+  font-size:13px;
+  line-height:1.9;
+
+  word-break:break-word;
+}
+
+/* RECEIPTS */
+
 .receipts{
-
   display:flex;
-
   flex-direction:column;
-
   gap:15px;
-
 }
 
 .receipt{
+  background:rgba(255,255,255,.86);
 
-  background:
-    rgba(255,255,255,.80);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
 
-  backdrop-filter:
-    blur(24px);
-
-  -webkit-backdrop-filter:
-    blur(24px);
-
-  border:
-    1px solid rgba(255,255,255,.95);
+  border:1px solid rgba(255,255,255,.95);
 
   border-radius:25px;
 
@@ -426,34 +359,27 @@ button:active{
   box-shadow:
     0 10px 35px rgba(0,0,0,.06);
 
+  transition:.25s;
 }
 
 .receipt-head{
-
   display:flex;
 
   justify-content:space-between;
-
   align-items:flex-start;
 
   gap:10px;
 
   margin-bottom:15px;
-
 }
 
-.user{
-
+.username{
   font-size:18px;
-
   font-weight:900;
-
 }
 
-.telegram{
-
+.telegram-id{
   direction:ltr;
-
   text-align:right;
 
   color:#64748b;
@@ -461,30 +387,23 @@ button:active{
   font-size:12px;
 
   margin-top:5px;
-
 }
 
 .pending{
-
-  background:
-    rgba(245,158,11,.12);
-
-  color:#b45309;
-
-  padding:7px 10px;
+  background:#fff7ed;
+  color:#c2410c;
 
   border-radius:999px;
 
-  font-size:11px;
+  padding:7px 10px;
 
+  font-size:11px;
   font-weight:900;
 
   white-space:nowrap;
-
 }
 
 .details{
-
   display:grid;
 
   grid-template-columns:
@@ -493,173 +412,75 @@ button:active{
   gap:9px;
 
   margin-bottom:15px;
-
 }
 
 .detail{
-
-  background:
-    rgba(248,250,252,.85);
+  background:#f8fafc;
 
   border-radius:15px;
 
   padding:12px;
-
 }
 
 .detail-label{
+  color:#64748b;
 
   font-size:10px;
 
-  color:#64748b;
-
   margin-bottom:5px;
-
 }
 
 .detail-value{
-
-  font-size:14px;
-
+  font-size:13px;
   font-weight:800;
 
   word-break:break-word;
-
 }
 
 .amount{
-
-  color:#0A84FF;
-
-  font-size:17px;
-
+  color:#1677e8;
+  font-size:16px;
 }
 
 .actions{
-
   display:grid;
 
   grid-template-columns:
     1fr 1fr;
 
   gap:10px;
+}
 
+.approve,
+.reject{
+  border:0;
+
+  border-radius:16px;
+
+  padding:14px;
+
+  font-family:inherit;
+
+  font-size:14px;
+  font-weight:900;
 }
 
 .approve{
-
-  background:
-    linear-gradient(
-      135deg,
-      #22c55e,
-      #16a34a
-    );
-
+  background:#22c55e;
   color:white;
-
-  padding:14px;
-
-  border-radius:16px;
-
-  font-size:14px;
-
-  font-weight:900;
-
 }
 
 .reject{
-
-  background:
-    rgba(239,68,68,.10);
-
+  background:#fee2e2;
   color:#dc2626;
-
-  padding:14px;
-
-  border-radius:16px;
-
-  font-size:14px;
-
-  font-weight:900;
-
 }
 
-button:disabled{
-
-  opacity:.5;
-
-  cursor:not-allowed;
-
+.approve:disabled,
+.reject:disabled{
+  opacity:.55;
 }
 
-.empty{
-
-  background:
-    rgba(255,255,255,.78);
-
-  border-radius:24px;
-
-  padding:45px 20px;
-
-  text-align:center;
-
-  box-shadow:
-    0 8px 30px rgba(0,0,0,.05);
-
-}
-
-.empty-icon{
-
-  font-size:45px;
-
-  margin-bottom:10px;
-
-}
-
-.empty-title{
-
-  font-size:17px;
-
-  font-weight:900;
-
-}
-
-.empty-text{
-
-  color:#64748b;
-
-  font-size:13px;
-
-  margin-top:7px;
-
-}
-
-.error-box{
-
-  background:
-    rgba(239,68,68,.07);
-
-  color:#991b1b;
-
-  border-radius:22px;
-
-  padding:20px;
-
-  line-height:1.9;
-
-}
-
-.small{
-
-  font-size:11px;
-
-  color:#64748b;
-
-  word-break:break-all;
-
-  margin-top:8px;
-
-}
+/* MOBILE */
 
 @media(max-width:600px){
 
@@ -667,9 +488,16 @@ button:disabled{
     padding:10px;
   }
 
-  .stats{
-    grid-template-columns:
-      repeat(3,1fr);
+  .title{
+    font-size:22px;
+  }
+
+  .subtitle{
+    font-size:12px;
+  }
+
+  .online{
+    padding:8px 10px;
   }
 
   .details{
@@ -677,21 +505,20 @@ button:disabled{
       1fr 1fr;
   }
 
-  .title{
-    font-size:20px;
-  }
-
 }
 
 </style>
-
 </head>
+
 
 <body>
 
 <div class="container">
 
-  <div class="header">
+
+  <!-- HEADER -->
+
+  <section class="header">
 
     <div class="header-top">
 
@@ -707,9 +534,10 @@ button:disabled{
 
       </div>
 
-      <div class="status">
 
-        <span class="status-dot"></span>
+      <div class="online">
+
+        <span class="online-dot"></span>
 
         آنلاین
 
@@ -717,18 +545,22 @@ button:disabled{
 
     </div>
 
+
     <div class="controls">
 
       <button
+        id="refreshBtn"
         class="refresh"
-        id="refreshButton"
+        type="button"
         onclick="loadReceipts()"
       >
         🔄 بروزرسانی رسیدها
       </button>
 
+
       <button
         class="logout"
+        type="button"
         onclick="logout()"
       >
         خروج
@@ -736,27 +568,34 @@ button:disabled{
 
     </div>
 
-  </div>
+  </section>
 
+
+  <!-- MESSAGE -->
 
   <div
     id="message"
+    class="message"
   ></div>
 
 
-  <div class="info">
+  <!-- STATS -->
 
-    <div class="info-title">
+  <section class="stats-card">
+
+    <div class="stats-title">
       وضعیت پرداخت‌ها
     </div>
 
+
     <div class="stats">
+
 
       <div class="stat">
 
         <div
-          class="stat-number"
           id="totalCount"
+          class="stat-number"
         >
           -
         </div>
@@ -771,8 +610,8 @@ button:disabled{
       <div class="stat">
 
         <div
-          class="stat-number"
           id="pendingCount"
+          class="stat-number"
         >
           -
         </div>
@@ -787,8 +626,8 @@ button:disabled{
       <div class="stat">
 
         <div
+          id="pendingAmount"
           class="stat-number"
-          id="amountCount"
         >
           -
         </div>
@@ -799,24 +638,28 @@ button:disabled{
 
       </div>
 
+
     </div>
 
-  </div>
+  </section>
 
 
-  <div id="content">
+  <!-- CONTENT -->
+
+  <main id="content">
 
     <div class="loading">
 
       <div class="spinner"></div>
 
-      <div>
+      <div class="loading-text">
         در حال دریافت رسیدها...
       </div>
 
     </div>
 
-  </div>
+  </main>
+
 
 </div>
 
@@ -828,7 +671,7 @@ button:disabled{
 TON DROPY ADMIN PANEL
 ========================================================
 
-این پنل از API فعلی استفاده می‌کند:
+API موجود:
 
 GET
 /api/admin/receipts-v2?secret=...
@@ -836,31 +679,39 @@ GET
 POST
 /api/admin/review
 
-بدون تغییر APIهای backend.
+این فایل هیچ تغییری در server.js ایجاد نمی‌کند.
 ========================================================
 */
 
 
-const params =
+"use strict";
+
+
+/* -----------------------------------------------------
+   SECRET
+----------------------------------------------------- */
+
+const urlParams =
   new URLSearchParams(
     window.location.search
   );
 
-
-const secret =
-  params.get("secret") || "";
-
-
-const API_TIMEOUT =
-  15000;
+const ADMIN_SECRET =
+  urlParams.get("secret") || "";
 
 
-/*
-========================================================
-UTILITY
-========================================================
-*/
+/* -----------------------------------------------------
+   CONSTANTS
+----------------------------------------------------- */
 
+const API_TIMEOUT = 15000;
+
+let loading = false;
+
+
+/* -----------------------------------------------------
+   HTML ESCAPE
+----------------------------------------------------- */
 
 function escapeHtml(value){
 
@@ -872,14 +723,18 @@ function escapeHtml(value){
   }
 
   return String(value)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 
 }
 
+
+/* -----------------------------------------------------
+   NUMBER FORMAT
+----------------------------------------------------- */
 
 function formatNumber(value){
 
@@ -899,6 +754,10 @@ function formatNumber(value){
 }
 
 
+/* -----------------------------------------------------
+   DATE FORMAT
+----------------------------------------------------- */
+
 function formatDate(value){
 
   if(!value){
@@ -915,7 +774,7 @@ function formatDate(value){
         date.getTime()
       )
     ){
-      return value;
+      return String(value);
     }
 
     return date.toLocaleString(
@@ -929,180 +788,334 @@ function formatDate(value){
       }
     );
 
-  }catch{
+  }catch(error){
 
-    return value;
+    return String(value);
 
   }
 
 }
 
 
-function methodLabel(method){
+/* -----------------------------------------------------
+   METHOD
+----------------------------------------------------- */
 
-  if(
-    method === "full"
-  ){
-    return "کامل";
+function methodText(method){
+
+  if(method === "full"){
+    return "پرداخت کامل";
   }
 
-  if(
-    method === "installment"
-  ){
+  if(method === "installment"){
     return "اقساطی";
   }
 
-  return method || "-";
+  if(!method){
+    return "-";
+  }
+
+  return method;
 
 }
 
 
-/*
-========================================================
-MESSAGE
-========================================================
-*/
-
+/* -----------------------------------------------------
+   MESSAGE
+----------------------------------------------------- */
 
 function showMessage(
   text,
-  type="info"
+  type
 ){
 
-  const element =
+  const el =
     document.getElementById(
       "message"
     );
 
-  element.className =
-    "";
-
-  element.id =
-    "message";
-
-  if(type === "error"){
-
-    element.classList.add(
-      "message-error"
+  el.className =
+    "message show " +
+    (
+      type ||
+      "info"
     );
 
-  }else if(type === "success"){
-
-    element.classList.add(
-      "message-success"
-    );
-
-  }else{
-
-    element.classList.add(
-      "message-info"
-    );
-
-  }
-
-  element.innerHTML =
+  el.innerHTML =
     text;
 
 }
 
 
-function hideMessage(){
+/* -----------------------------------------------------
+   FETCH TIMEOUT
+----------------------------------------------------- */
 
-  const element =
-    document.getElementById(
-      "message"
-    );
-
-  element.className =
-    "";
-
-  element.style.display =
-    "none";
-
-}
-
-
-/*
-========================================================
-FETCH WITH TIMEOUT
-========================================================
-*/
-
-
-async function fetchWithTimeout(
+async function request(
   url,
-  options={}
+  options
 ){
 
   const controller =
     new AbortController();
 
-  const timer =
+  const timeout =
     setTimeout(
-      () => controller.abort(),
+      function(){
+
+        controller.abort();
+
+      },
       API_TIMEOUT
     );
 
+
   try{
 
-    const response =
-      await fetch(
-        url,
-        {
-          ...options,
-          signal:
-            controller.signal
-        }
-      );
-
-    return response;
+    return await fetch(
+      url,
+      {
+        ...(options || {}),
+        signal:
+          controller.signal
+      }
+    );
 
   }finally{
 
-    clearTimeout(timer);
+    clearTimeout(
+      timeout
+    );
 
   }
 
 }
 
 
-/*
-========================================================
-LOAD RECEIPTS
-========================================================
-*/
+/* -----------------------------------------------------
+   PARSE RESPONSE
+----------------------------------------------------- */
 
+async function parseResponse(
+  response
+){
+
+  const text =
+    await response.text();
+
+
+  let data = null;
+
+
+  if(text){
+
+    try{
+
+      data =
+        JSON.parse(text);
+
+    }catch(error){
+
+      data = null;
+
+    }
+
+  }
+
+
+  if(!response.ok){
+
+    throw new Error(
+      (
+        data &&
+        (
+          data.message ||
+          data.error
+        )
+      ) ||
+      "خطای سرور: HTTP " +
+      response.status
+    );
+
+  }
+
+
+  return data;
+
+}
+
+
+/* -----------------------------------------------------
+   NORMALIZE RECEIPTS
+----------------------------------------------------- */
+
+function normalizeReceipts(
+  data
+){
+
+  /*
+  حالت ۱:
+
+  [
+    {...},
+    {...}
+  ]
+  */
+
+  if(
+    Array.isArray(data)
+  ){
+
+    return data;
+
+  }
+
+
+  /*
+  حالت ۲:
+
+  {
+    data: [...]
+  }
+  */
+
+  if(
+    data &&
+    Array.isArray(
+      data.data
+    )
+  ){
+
+    return data.data;
+
+  }
+
+
+  /*
+  حالت ۳:
+
+  {
+    receipts: [...]
+  }
+  */
+
+  if(
+    data &&
+    Array.isArray(
+      data.receipts
+    )
+  ){
+
+    return data.receipts;
+
+  }
+
+
+  /*
+  اگر API موفق ولی خالی باشد
+  */
+
+  return [];
+
+}
+
+
+/* -----------------------------------------------------
+   UPDATE STATS
+----------------------------------------------------- */
+
+function updateStats(
+  allReceipts,
+  pendingReceipts
+){
+
+  document.getElementById(
+    "totalCount"
+  ).innerText =
+    formatNumber(
+      allReceipts.length
+    );
+
+
+  document.getElementById(
+    "pendingCount"
+  ).innerText =
+    formatNumber(
+      pendingReceipts.length
+    );
+
+
+  let amount = 0;
+
+
+  pendingReceipts.forEach(
+    function(receipt){
+
+      amount +=
+        Number(
+          receipt.amount
+        ) || 0;
+
+    }
+  );
+
+
+  document.getElementById(
+    "pendingAmount"
+  ).innerText =
+    formatNumber(
+      amount
+    );
+
+}
+
+
+/* -----------------------------------------------------
+   LOAD RECEIPTS
+----------------------------------------------------- */
 
 async function loadReceipts(){
+
+  if(loading){
+    return;
+  }
+
+
+  loading = true;
+
+
+  const button =
+    document.getElementById(
+      "refreshBtn"
+    );
+
 
   const content =
     document.getElementById(
       "content"
     );
 
-  const refreshButton =
-    document.getElementById(
-      "refreshButton"
-    );
 
+  if(!ADMIN_SECRET){
 
-  if(!secret){
+    loading = false;
 
     content.innerHTML = `
 
-      <div class="error-box">
+      <div class="error">
 
-        <strong>
+        <div class="error-title">
           خطای دسترسی
-        </strong>
+        </div>
 
-        <br>
+        <div class="error-text">
 
-        کلید مدیریت در آدرس صفحه وجود ندارد.
+          کلید مدیریت در آدرس صفحه وجود ندارد.
 
-        <div class="small">
-          مثال:
-          /admin?secret=YOUR_ADMIN_SECRET
+          <br><br>
+
+          صفحه را با secret صحیح باز کنید.
+
         </div>
 
       </div>
@@ -1110,7 +1123,7 @@ async function loadReceipts(){
     `;
 
     showMessage(
-      "پارامتر secret در آدرس صفحه وجود ندارد.",
+      "پارامتر secret در آدرس صفحه پیدا نشد.",
       "error"
     );
 
@@ -1119,10 +1132,9 @@ async function loadReceipts(){
   }
 
 
-  refreshButton.disabled =
-    true;
+  button.disabled = true;
 
-  refreshButton.innerText =
+  button.innerText =
     "⏳ در حال دریافت...";
 
 
@@ -1132,7 +1144,7 @@ async function loadReceipts(){
 
       <div class="spinner"></div>
 
-      <div>
+      <div class="loading-text">
         در حال دریافت رسیدها...
       </div>
 
@@ -1143,155 +1155,99 @@ async function loadReceipts(){
 
   try{
 
-    const url =
+    const endpoint =
       "/api/admin/receipts-v2?secret=" +
       encodeURIComponent(
-        secret
+        ADMIN_SECRET
       );
 
 
+    console.log(
+      "TON Dropy Admin API:",
+      endpoint
+    );
+
+
     const response =
-      await fetchWithTimeout(
-        url,
+      await request(
+        endpoint,
         {
           method:"GET",
-          cache:"no-store",
+
           headers:{
             "Accept":
               "application/json"
-          }
+          },
+
+          cache:"no-store"
         }
       );
 
 
-    const raw =
-      await response.text();
-
-
-    let data;
-
-    try{
-
-      data =
-        JSON.parse(raw);
-
-    }catch{
-
-      throw new Error(
-        "پاسخ سرور JSON معتبر نیست."
+    const data =
+      await parseResponse(
+        response
       );
 
-    }
+
+    console.log(
+      "TON Dropy API response:",
+      data
+    );
 
 
-    if(!response.ok){
-
-      throw new Error(
-        data.message ||
-        data.error ||
-        (
-          "خطای سرور: HTTP " +
-          response.status
-        )
+    const allReceipts =
+      normalizeReceipts(
+        data
       );
-
-    }
 
 
     /*
-    ----------------------------------------------------
-    API ممکن است مستقیماً آرایه برگرداند
-    یا داخل data قرار دهد.
-    ----------------------------------------------------
+    فقط pending
     */
 
-    let receipts = [];
+    const pendingReceipts =
+      allReceipts.filter(
+        function(receipt){
 
-
-    if(
-      Array.isArray(data)
-    ){
-
-      receipts =
-        data;
-
-    }else if(
-      data &&
-      Array.isArray(data.data)
-    ){
-
-      receipts =
-        data.data;
-
-    }else if(
-      data &&
-      Array.isArray(data.receipts)
-    ){
-
-      receipts =
-        data.receipts;
-
-    }else if(
-      data &&
-      data.success === false
-    ){
-
-      throw new Error(
-        data.message ||
-        "سرور درخواست را رد کرد."
-      );
-
-    }else{
-
-      receipts = [];
-
-    }
-
-
-    /*
-    ----------------------------------------------------
-    فقط pending ها
-    ----------------------------------------------------
-    */
-
-    const pending =
-      receipts.filter(
-        item =>
-          String(
-            item.status || ""
+          return String(
+            receipt.status || ""
           ).toLowerCase()
-          === "pending"
+          === "pending";
+
+        }
       );
 
 
     updateStats(
-      receipts,
-      pending
+      allReceipts,
+      pendingReceipts
     );
 
 
     renderReceipts(
-      pending
+      pendingReceipts
     );
 
 
     if(
-      pending.length > 0
+      pendingReceipts.length
+      > 0
     ){
 
       showMessage(
-        "تعداد " +
+        "✅ " +
         formatNumber(
-          pending.length
+          pendingReceipts.length
         ) +
-        " رسید در انتظار تأیید است.",
+        " رسید در انتظار تأیید وجود دارد.",
         "success"
       );
 
     }else{
 
       showMessage(
-        "در حال حاضر رسیدی برای تأیید وجود ندارد.",
+        "در حال حاضر رسید pending وجود ندارد.",
         "info"
       );
 
@@ -1301,52 +1257,68 @@ async function loadReceipts(){
   }catch(error){
 
     console.error(
-      "ADMIN LOAD ERROR:",
+      "TON DROPY ADMIN ERROR:",
       error
     );
 
 
-    let message =
-      error?.message ||
-      "خطای نامشخص";
+    let errorText =
+      error &&
+      error.message
+      ? error.message
+      : "خطای نامشخص";
 
 
     if(
-      error?.name ===
+      error &&
+      error.name ===
       "AbortError"
     ){
 
-      message =
-        "زمان پاسخ سرور بیشتر از ۱۵ ثانیه شد.";
+      errorText =
+        "سرور در مدت ۱۵ ثانیه پاسخ نداد.";
 
     }
 
 
     content.innerHTML = `
 
-      <div class="error-box">
+      <div class="error">
 
-        <strong>
+        <div class="error-title">
           دریافت رسیدها ناموفق بود
-        </strong>
-
-        <br><br>
-
-        ${escapeHtml(message)}
-
-        <div class="small">
-          API:
-          /api/admin/receipts-v2
         </div>
 
-        <br>
+        <div class="error-text">
 
-        <button
-          class="refresh"
-          onclick="loadReceipts()"
-        >
-          تلاش مجدد
-        </button>
+          ${escapeHtml(
+            errorText
+          )}
+
+          <br><br>
+
+          API:
+
+          <br>
+
+          /api/admin/receipts-v2
+
+          <br><br>
+
+          اگر API را مستقیماً باز کنید
+          باید اطلاعات رسیدها نمایش داده شود.
+
+          <br><br>
+
+          <button
+            class="refresh"
+            type="button"
+            onclick="loadReceipts()"
+          >
+            🔄 تلاش مجدد
+          </button>
+
+        </div>
 
       </div>
 
@@ -1354,17 +1326,18 @@ async function loadReceipts(){
 
 
     showMessage(
-      "ارتباط با API پنل مدیریت با خطا مواجه شد.",
+      "❌ ارتباط پنل با API با خطا مواجه شد.",
       "error"
     );
 
 
   }finally{
 
-    refreshButton.disabled =
-      false;
+    loading = false;
 
-    refreshButton.innerText =
+    button.disabled = false;
+
+    button.innerText =
       "🔄 بروزرسانی رسیدها";
 
   }
@@ -1372,66 +1345,9 @@ async function loadReceipts(){
 }
 
 
-/*
-========================================================
-STATS
-========================================================
-*/
-
-
-function updateStats(
-  all,
-  pending
-){
-
-  document.getElementById(
-    "totalCount"
-  ).innerText =
-    formatNumber(
-      all.length
-    );
-
-
-  document.getElementById(
-    "pendingCount"
-  ).innerText =
-    formatNumber(
-      pending.length
-    );
-
-
-  const total =
-    pending.reduce(
-      (
-        sum,
-        item
-      ) =>
-        sum +
-        (
-          Number(
-            item.amount
-          ) || 0
-        ),
-      0
-    );
-
-
-  document.getElementById(
-    "amountCount"
-  ).innerText =
-    formatNumber(
-      total
-    );
-
-}
-
-
-/*
-========================================================
-RENDER RECEIPTS
-========================================================
-*/
-
+/* -----------------------------------------------------
+   RENDER RECEIPTS
+----------------------------------------------------- */
 
 function renderReceipts(
   receipts
@@ -1461,7 +1377,7 @@ function renderReceipts(
         </div>
 
         <div class="empty-text">
-          تمام پرداخت‌های فعلی بررسی شده‌اند.
+          در حال حاضر همه رسیدها بررسی شده‌اند.
         </div>
 
       </div>
@@ -1477,26 +1393,41 @@ function renderReceipts(
   جدیدترین رسید اول
   */
 
-  receipts.sort(
-    (a,b) =>
-      new Date(
-        b.created_at || 0
-      ) -
-      new Date(
-        a.created_at || 0
-      )
-  );
+  receipts =
+    [...receipts].sort(
+      function(a,b){
+
+        return (
+          new Date(
+            b.created_at || 0
+          ).getTime()
+          -
+          new Date(
+            a.created_at || 0
+          ).getTime()
+        );
+
+      }
+    );
 
 
   content.innerHTML = `
 
     <div class="receipts">
 
-      ${receipts
-        .map(
-          renderReceipt
-        )
-        .join("")}
+      ${
+        receipts
+          .map(
+            function(receipt){
+
+              return renderReceipt(
+                receipt
+              );
+
+            }
+          )
+          .join("")
+      }
 
     </div>
 
@@ -1505,62 +1436,78 @@ function renderReceipts(
 }
 
 
-/*
-========================================================
-RECEIPT CARD
-========================================================
-*/
-
+/* -----------------------------------------------------
+   RECEIPT CARD
+----------------------------------------------------- */
 
 function renderReceipt(
-  item
+  receipt
 ){
 
   const user =
-    item.users || {};
+    receipt.users &&
+    typeof receipt.users === "object"
+    ? receipt.users
+    : {};
 
 
   const username =
     user.username ||
-    item.username ||
+    receipt.username ||
     "کاربر";
 
 
   const telegramId =
     user.telegram_id ||
-    item.telegram_id ||
+    receipt.telegram_id ||
     "-";
 
 
   const amount =
     Number(
-      item.amount
+      receipt.amount
     ) || 0;
+
+
+  const receiptId =
+    receipt.id ||
+    "";
+
+
+  const userId =
+    receipt.user_id ||
+    "";
 
 
   return `
 
-    <div
+    <article
       class="receipt"
-      id="receipt-${escapeHtml(item.id)}"
+      id="receipt-${escapeHtml(
+        receiptId
+      )}"
     >
+
 
       <div class="receipt-head">
 
         <div>
 
-          <div class="user">
+          <div class="username">
 
             👤
+
             ${escapeHtml(
               username
             )}
 
           </div>
 
-          <div class="telegram">
+
+          <div class="telegram-id">
 
             Telegram ID:
+
             ${escapeHtml(
               telegramId
             )}
@@ -1571,9 +1518,7 @@ function renderReceipt(
 
 
         <div class="pending">
-
           ⏳ در انتظار
-
         </div>
 
       </div>
@@ -1588,9 +1533,7 @@ function renderReceipt(
             مبلغ
           </div>
 
-          <div
-            class="detail-value amount"
-          >
+          <div class="detail-value amount">
 
             ${formatNumber(
               amount
@@ -1612,8 +1555,8 @@ function renderReceipt(
           <div class="detail-value">
 
             ${escapeHtml(
-              methodLabel(
-                item.method
+              methodText(
+                receipt.method
               )
             )}
 
@@ -1625,14 +1568,14 @@ function renderReceipt(
         <div class="detail">
 
           <div class="detail-label">
-            تاریخ ثبت
+            زمان ثبت
           </div>
 
           <div class="detail-value">
 
             ${escapeHtml(
               formatDate(
-                item.created_at
+                receipt.created_at
               )
             )}
 
@@ -1649,11 +1592,11 @@ function renderReceipt(
 
           <div
             class="detail-value"
-            style="font-size:11px"
+            style="font-size:10px"
           >
 
             ${escapeHtml(
-              item.id
+              receiptId
             )}
 
           </div>
@@ -1666,10 +1609,19 @@ function renderReceipt(
 
       <div class="actions">
 
+
         <button
           class="approve"
-          data-receipt-id="${escapeHtml(item.id)}"
-          data-user-id="${escapeHtml(item.user_id || "")}"
+          type="button"
+
+          data-receipt-id="${escapeHtml(
+            receiptId
+          )}"
+
+          data-user-id="${escapeHtml(
+            userId
+          )}"
+
           onclick="reviewReceipt(
             this,
             'approve'
@@ -1683,8 +1635,16 @@ function renderReceipt(
 
         <button
           class="reject"
-          data-receipt-id="${escapeHtml(item.id)}"
-          data-user-id="${escapeHtml(item.user_id || "")}"
+          type="button"
+
+          data-receipt-id="${escapeHtml(
+            receiptId
+          )}"
+
+          data-user-id="${escapeHtml(
+            userId
+          )}"
+
           onclick="reviewReceipt(
             this,
             'reject'
@@ -1695,22 +1655,20 @@ function renderReceipt(
 
         </button>
 
+
       </div>
 
 
-    </div>
+    </article>
 
   `;
 
 }
 
 
-/*
-========================================================
-REVIEW RECEIPT
-========================================================
-*/
-
+/* -----------------------------------------------------
+   REVIEW
+----------------------------------------------------- */
 
 async function reviewReceipt(
   button,
@@ -1718,17 +1676,17 @@ async function reviewReceipt(
 ){
 
   const receiptId =
-    button.dataset.receiptId;
+    button.dataset.receiptId || "";
 
 
   const userId =
-    button.dataset.userId;
+    button.dataset.userId || "";
 
 
   if(!receiptId){
 
     showMessage(
-      "شناسه رسید پیدا نشد.",
+      "شناسه رسید وجود ندارد.",
       "error"
     );
 
@@ -1737,30 +1695,20 @@ async function reviewReceipt(
   }
 
 
-  let confirmation;
+  const question =
+    action === "approve"
+    ? "آیا از تأیید این پرداخت و فعال‌سازی کاربر مطمئن هستید؟"
+    : "آیا از رد کردن این رسید مطمئن هستید؟";
 
 
   if(
-    action === "approve"
+    !window.confirm(
+      question
+    )
   ){
 
-    confirmation =
-      confirm(
-        "آیا از تأیید این پرداخت و فعال‌سازی کاربر مطمئن هستید؟"
-      );
-
-  }else{
-
-    confirmation =
-      confirm(
-        "آیا از رد کردن این رسید مطمئن هستید؟"
-      );
-
-  }
-
-
-  if(!confirmation){
     return;
+
   }
 
 
@@ -1773,30 +1721,38 @@ async function reviewReceipt(
 
   const buttons =
     card
-      ? card.querySelectorAll(
-          "button"
-        )
-      : [];
+    ? card.querySelectorAll(
+        "button"
+      )
+    : [];
 
 
   buttons.forEach(
-    btn => {
+    function(btn){
+
       btn.disabled =
         true;
+
     }
   );
 
 
   button.innerText =
     action === "approve"
-      ? "⏳ در حال تأیید..."
-      : "⏳ در حال بررسی...";
+    ? "⏳ در حال تأیید..."
+    : "⏳ در حال رد...";
 
 
   try{
 
+    /*
+    ----------------------------------------------------
+    ارسال به API فعلی
+    ----------------------------------------------------
+    */
+
     const response =
-      await fetchWithTimeout(
+      await request(
         "/api/admin/review",
         {
           method:"POST",
@@ -1809,63 +1765,36 @@ async function reviewReceipt(
               "application/json"
           },
 
-          body:
-            JSON.stringify({
+          body:JSON.stringify({
 
-              receiptId:
-                receiptId,
+            receiptId:
+              receiptId,
 
-              userId:
-                userId,
+            userId:
+              userId,
 
-              action:
-                action,
+            action:
+              action,
 
-              secret:
-                secret
+            secret:
+              ADMIN_SECRET
 
-            })
+          })
 
-          }
         }
       );
 
 
-    const raw =
-      await response.text();
-
-
-    let data = null;
-
-
-    try{
-
-      data =
-        raw
-          ? JSON.parse(raw)
-          : null;
-
-    }catch{
-
-      data = null;
-
-    }
-
-
-    if(!response.ok){
-
-      throw new Error(
-
-        data?.message ||
-        data?.error ||
-        (
-          "خطای سرور: HTTP " +
-          response.status
-        )
-
+    const data =
+      await parseResponse(
+        response
       );
 
-    }
+
+    console.log(
+      "Review response:",
+      data
+    );
 
 
     if(
@@ -1881,79 +1810,46 @@ async function reviewReceipt(
     }
 
 
-    /*
-    ----------------------------------------------------
-    موفقیت
-    ----------------------------------------------------
-    */
-
-
-    if(
+    showMessage(
       action === "approve"
-    ){
-
-      showMessage(
-        "✅ پرداخت با موفقیت تأیید شد و وضعیت کاربر فعال شد.",
-        "success"
-      );
-
-    }else{
-
-      showMessage(
-        "✅ رسید با موفقیت رد شد.",
-        "success"
-      );
-
-    }
+      ? "✅ پرداخت با موفقیت تأیید شد."
+      : "✅ رسید با موفقیت رد شد.",
+      "success"
+    );
 
 
     /*
-    کارت را بلافاصله حذف می‌کنیم
-    سپس لیست واقعی سرور را دوباره می‌گیریم.
+    ----------------------------------------------------
+    بعد از عملیات، از خود سرور دوباره می‌خوانیم
+    ----------------------------------------------------
     */
 
-    if(card){
-
-      card.style.opacity =
-        "0";
-
-      card.style.transform =
-        "scale(.96)";
-
-      card.style.transition =
-        ".25s";
-
-    }
-
-
-    setTimeout(
-      () => {
-        loadReceipts();
-      },
-      350
-    );
+    await loadReceipts();
 
 
   }catch(error){
 
     console.error(
-      "REVIEW ERROR:",
+      "TON DROPY REVIEW ERROR:",
       error
     );
 
 
-    let message =
-      error?.message ||
-      "خطای نامشخص";
+    let errorText =
+      error &&
+      error.message
+      ? error.message
+      : "خطای نامشخص";
 
 
     if(
-      error?.name ===
+      error &&
+      error.name ===
       "AbortError"
     ){
 
-      message =
-        "زمان پاسخ عملیات بیشتر از ۱۵ ثانیه شد.";
+      errorText =
+        "سرور در مدت ۱۵ ثانیه پاسخ نداد.";
 
     }
 
@@ -1961,40 +1857,35 @@ async function reviewReceipt(
     showMessage(
       "❌ عملیات انجام نشد: " +
       escapeHtml(
-        message
+        errorText
       ),
       "error"
     );
 
 
-    /*
-    دوباره فعال کردن دکمه‌ها
-    */
-
     buttons.forEach(
-      btn => {
+      function(btn){
+
         btn.disabled =
           false;
+
       }
     );
 
 
     button.innerText =
       action === "approve"
-        ? "✅ تأیید پرداخت"
-        : "❌ رد رسید";
+      ? "✅ تأیید پرداخت"
+      : "❌ رد رسید";
 
   }
 
 }
 
 
-/*
-========================================================
-LOGOUT
-========================================================
-*/
-
+/* -----------------------------------------------------
+   LOGOUT
+----------------------------------------------------- */
 
 function logout(){
 
@@ -2004,16 +1895,13 @@ function logout(){
 }
 
 
-/*
-========================================================
-INITIAL LOAD
-========================================================
-*/
+/* -----------------------------------------------------
+   START
+----------------------------------------------------- */
 
-
-window.addEventListener(
+document.addEventListener(
   "DOMContentLoaded",
-  () => {
+  function(){
 
     loadReceipts();
 
@@ -2021,18 +1909,12 @@ window.addEventListener(
 );
 
 
-/*
-========================================================
-AUTO REFRESH
-========================================================
-
-هر ۳۰ ثانیه لیست را تازه می‌کند.
-========================================================
-*/
-
+/* -----------------------------------------------------
+   AUTO REFRESH
+----------------------------------------------------- */
 
 setInterval(
-  () => {
+  function(){
 
     if(
       document.visibilityState ===
@@ -2050,5 +1932,4 @@ setInterval(
 </script>
 
 </body>
-
 </html>
