@@ -7,17 +7,10 @@
 
 <meta
   name="viewport"
-  content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+  content="width=device-width,initial-scale=1"
 >
 
-<title>TON Dropy</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
->
+<title>TON Dropy - مدیریت</title>
 
 <style>
 
@@ -27,131 +20,97 @@
 
 body {
   margin: 0;
-  padding: 18px;
-  min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(10,132,255,.15),
-      transparent 35%
-    ),
-    #f5f8fc;
-  font-family: Vazirmatn, sans-serif;
+  padding: 15px;
+  background: #f4f7fc;
+  font-family: Arial, sans-serif;
+  color: #111827;
 }
 
-.card {
-  width: 100%;
-  max-width: 420px;
+.container {
+  max-width: 900px;
   margin: auto;
-  padding: 24px;
-  background: rgba(255,255,255,.88);
-  border: 1px solid white;
-  border-radius: 28px;
+}
+
+.header,
+.card {
+  background: white;
+  border-radius: 22px;
+  padding: 20px;
+  margin-bottom: 15px;
   box-shadow:
-    0 20px 50px rgba(0,0,0,.08);
-  backdrop-filter: blur(25px);
+    0 10px 35px rgba(0,0,0,.06);
 }
 
 .title {
-  text-align: center;
-  color: #0a84ff;
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 900;
-  margin-bottom: 8px;
+  color: #347ff0;
 }
 
 .subtitle {
-  text-align: center;
   color: #64748b;
-  font-size: 13px;
-  margin-bottom: 24px;
-}
-
-.hidden {
-  display: none !important;
-}
-
-.methods {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.method {
-  border: 2px solid #e5e7eb;
-  background: white;
-  border-radius: 17px;
-  padding: 14px 8px;
-  text-align: center;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.method.active {
-  border-color: #0a84ff;
-  background: #eff6ff;
-  color: #0a84ff;
-}
-
-.upload {
-  border: 2px dashed #0a84ff;
-  border-radius: 18px;
-  padding: 22px;
-  text-align: center;
-  cursor: pointer;
-  margin-bottom: 16px;
-  background: #f8fbff;
-}
-
-.upload strong {
-  display: block;
-  color: #0a84ff;
-}
-
-#fileName {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #64748b;
-}
-
-input[type=file] {
-  display: none;
+  margin-top: 6px;
 }
 
 button {
-  width: 100%;
   border: 0;
-  border-radius: 17px;
-  padding: 16px;
-  font-family: inherit;
-  font-size: 15px;
+  border-radius: 14px;
+  padding: 13px 18px;
   font-weight: 900;
   cursor: pointer;
+  font-family: inherit;
 }
 
-.send {
+.refresh {
+  background: #347ff0;
+  color: white;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.receipt {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.row {
+  margin: 7px 0;
+}
+
+.label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.value {
+  font-weight: 800;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.approve {
   background: #22c55e;
   color: white;
 }
 
-.status {
-  margin-top: 16px;
-  padding: 15px;
-  border-radius: 16px;
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.8;
+.reject {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
-.info {
+.status {
+  padding: 12px;
+  border-radius: 14px;
+  margin-bottom: 15px;
   background: #eff6ff;
   color: #075985;
-}
-
-.success {
-  background: #ecfdf5;
-  color: #15803d;
 }
 
 .error {
@@ -159,10 +118,10 @@ button {
   color: #b91c1c;
 }
 
-.user {
+.empty {
   text-align: center;
-  margin-bottom: 18px;
-  font-weight: 900;
+  padding: 35px;
+  color: #64748b;
 }
 
 </style>
@@ -171,108 +130,35 @@ button {
 
 <body>
 
-<div class="card">
+<div class="container">
 
-  <div class="title">
-    TON Dropy
-  </div>
+  <div class="header">
 
-  <div class="subtitle">
-    فعال‌سازی حساب کاربری
-  </div>
-
-  <div
-    id="loading"
-    class="status info"
-  >
-    در حال بررسی حساب تلگرام...
-  </div>
-
-  <div
-    id="error"
-    class="status error hidden"
-  ></div>
-
-  <div
-    id="active"
-    class="status success hidden"
-  >
-    حساب شما قبلاً فعال شده است. ✅
-  </div>
-
-  <div
-    id="pending"
-    class="status info hidden"
-  >
-    رسید شما قبلاً ارسال شده و در انتظار بررسی مدیریت است. ⏳
-  </div>
-
-  <div
-    id="form"
-    class="hidden"
-  >
-
-    <div
-      id="user"
-      class="user"
-    ></div>
-
-    <div class="methods">
-
-      <div
-        id="full"
-        class="method active"
-        onclick="setMethod('full')"
-      >
-        پرداخت کامل
-        <br>
-        ۳,۷۸۰,۰۰۰
-      </div>
-
-      <div
-        id="installment"
-        class="method"
-        onclick="setMethod('installment')"
-      >
-        اقساطی
-        <br>
-        ۹۴۵,۰۰۰
-      </div>
-
+    <div class="title">
+      TON Dropy
     </div>
 
-    <label class="upload">
-
-      <strong>
-        📎 انتخاب تصویر رسید
-      </strong>
-
-      <div id="fileName">
-        فایلی انتخاب نشده
-      </div>
-
-      <input
-        id="receipt"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onchange="fileSelected()"
-      >
-
-    </label>
+    <div class="subtitle">
+      پنل مدیریت پرداخت‌ها و فعال‌سازی کاربران
+    </div>
 
     <button
-      class="send"
-      onclick="uploadReceipt()"
+      class="refresh"
+      onclick="loadReceipts()"
     >
-      ارسال رسید
+      🔄 بروزرسانی رسیدها
     </button>
 
-    <div
-      id="message"
-      class="status hidden"
-    ></div>
-
   </div>
+
+  <div
+    id="message"
+    class="status"
+  >
+    در حال دریافت اطلاعات...
+  </div>
+
+  <div id="content"></div>
 
 </div>
 
@@ -281,57 +167,52 @@ button {
 
 "use strict";
 
-let telegramUser = null;
 
-let method = "full";
+/*
+=========================================================
+ADMIN SECRET
+=========================================================
+*/
 
-let telegramId = "";
+const params =
+  new URLSearchParams(
+    location.search
+  );
 
-let username = "";
+let adminSecret =
+  params.get("secret") ||
+  localStorage.getItem(
+    "tondropy_admin_secret"
+  );
+
+if (!adminSecret) {
+
+  adminSecret =
+    prompt(
+      "رمز پنل مدیریت را وارد کنید:"
+    );
+
+  if (adminSecret) {
+
+    localStorage.setItem(
+      "tondropy_admin_secret",
+      adminSecret
+    );
+
+  }
+
+}
 
 
 /*
 =========================================================
-TELEGRAM
+MESSAGE
 =========================================================
 */
 
-const tg =
-  window.Telegram &&
-  window.Telegram.WebApp
-    ? window.Telegram.WebApp
-    : null;
-
-
-function show(
-  id
-) {
-
-  document
-    .getElementById(id)
-    .classList.remove(
-      "hidden"
-    );
-
-}
-
-
-function hide(
-  id
-) {
-
-  document
-    .getElementById(id)
-    .classList.add(
-      "hidden"
-    );
-
-}
-
-
 function message(
   text,
-  type = "info"
+  error = false
 ) {
 
   const el =
@@ -339,172 +220,58 @@ function message(
       "message"
     );
 
-  el.className =
-    `status ${type}`;
-
   el.innerText =
     text;
 
-  el.classList.remove(
-    "hidden"
-  );
+  el.className =
+    error
+      ? "status error"
+      : "status";
 
 }
 
 
 /*
 =========================================================
-AUTH
+FORMAT
 =========================================================
 */
 
-async function authenticate() {
+function number(
+  value
+) {
 
-  if (!tg) {
+  const n =
+    Number(value);
 
-    hide("loading");
+  return Number.isFinite(n)
+    ? n.toLocaleString(
+        "fa-IR"
+      )
+    : "-";
 
-    const error =
-      document.getElementById(
-        "error"
-      );
+}
 
-    error.innerText =
-      "لطفاً Mini App را از داخل Telegram باز کنید.";
 
-    show("error");
+function date(
+  value
+) {
 
-    return;
-
-  }
-
-  tg.ready();
-
-  tg.expand();
-
-  const initData =
-    tg.initData;
-
-  if (!initData) {
-
-    hide("loading");
-
-    const error =
-      document.getElementById(
-        "error"
-      );
-
-    error.innerText =
-      "اطلاعات Telegram دریافت نشد. لطفاً Mini App را از داخل ربات باز کنید.";
-
-    show("error");
-
-    return;
-
+  if (!value) {
+    return "-";
   }
 
   try {
 
-    const response =
-      await fetch(
-        "/api/auth/telegram",
-        {
-          method:
-            "POST",
+    return new Date(
+      value
+    ).toLocaleString(
+      "fa-IR"
+    );
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+  } catch (_) {
 
-          body:
-            JSON.stringify({
-              initData
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok ||
-        !data.success) {
-
-      throw new Error(
-        data.error ||
-        "خطا در احراز هویت."
-      );
-
-    }
-
-    telegramUser =
-      data.user;
-
-    telegramId =
-      String(
-        data.telegram_id
-      );
-
-    username =
-      data.username ||
-      "";
-
-    const name =
-      [
-        telegramUser?.first_name,
-        telegramUser?.last_name
-      ]
-      .filter(Boolean)
-      .join(" ");
-
-    document.getElementById(
-      "user"
-    ).innerText =
-      name
-        ? `سلام ${name} عزیز 👋`
-        : "سلام 👋";
-
-    hide("loading");
-
-    const status =
-      data.account_status;
-
-    if (
-      status === "active"
-    ) {
-
-      show("active");
-
-      return;
-
-    }
-
-    if (
-      status === "pending"
-    ) {
-
-      show("pending");
-
-      return;
-
-    }
-
-    show("form");
-
-  } catch (error) {
-
-    hide("loading");
-
-    const errorBox =
-      document.getElementById(
-        "error"
-      );
-
-    errorBox.innerText =
-      error.message ||
-      "خطا در ارتباط با سرور.";
-
-    show("error");
+    return value;
 
   }
 
@@ -513,33 +280,36 @@ async function authenticate() {
 
 /*
 =========================================================
-PAYMENT METHOD
+ESCAPE
 =========================================================
 */
 
-function setMethod(
-  selected
+function escapeHtml(
+  value
 ) {
 
-  method =
-    selected;
-
-  document
-    .getElementById(
-      "full"
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
     )
-    .classList.toggle(
-      "active",
-      selected === "full"
-    );
-
-  document
-    .getElementById(
-      "installment"
+    .replace(
+      /</g,
+      "&lt;"
     )
-    .classList.toggle(
-      "active",
-      selected === "installment"
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
     );
 
 }
@@ -547,189 +317,17 @@ function setMethod(
 
 /*
 =========================================================
-FILE
+LOAD
 =========================================================
 */
 
-function fileSelected() {
+async function loadReceipts() {
 
-  const input =
-    document.getElementById(
-      "receipt"
-    );
-
-  const file =
-    input.files[0];
-
-  document.getElementById(
-    "fileName"
-  ).innerText =
-    file
-      ? file.name
-      : "فایلی انتخاب نشده";
-
-}
-
-
-/*
-=========================================================
-IMAGE COMPRESS
-=========================================================
-*/
-
-function compressImage(
-  file
-) {
-
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-
-      const reader =
-        new FileReader();
-
-      reader.onload =
-        function(event) {
-
-          const image =
-            new Image();
-
-          image.onload =
-            function() {
-
-              const max =
-                1600;
-
-              let width =
-                image.width;
-
-              let height =
-                image.height;
-
-              if (
-                width > max ||
-                height > max
-              ) {
-
-                if (
-                  width >
-                  height
-                ) {
-
-                  height =
-                    Math.round(
-                      height *
-                      max /
-                      width
-                    );
-
-                  width =
-                    max;
-
-                } else {
-
-                  width =
-                    Math.round(
-                      width *
-                      max /
-                      height
-                    );
-
-                  height =
-                    max;
-
-                }
-
-              }
-
-              const canvas =
-                document.createElement(
-                  "canvas"
-                );
-
-              canvas.width =
-                width;
-
-              canvas.height =
-                height;
-
-              const ctx =
-                canvas.getContext(
-                  "2d"
-                );
-
-              ctx.drawImage(
-                image,
-                0,
-                0,
-                width,
-                height
-              );
-
-              resolve(
-                canvas.toDataURL(
-                  "image/jpeg",
-                  0.82
-                )
-              );
-
-            };
-
-          image.onerror =
-            reject;
-
-          image.src =
-            event.target.result;
-
-        };
-
-      reader.onerror =
-        reject;
-
-      reader.readAsDataURL(
-        file
-      );
-
-    }
-  );
-
-}
-
-
-/*
-=========================================================
-UPLOAD
-=========================================================
-*/
-
-async function uploadReceipt() {
-
-  const input =
-    document.getElementById(
-      "receipt"
-    );
-
-  const file =
-    input.files[0];
-
-  if (!file) {
+  if (!adminSecret) {
 
     message(
-      "لطفاً ابتدا تصویر رسید را انتخاب کنید.",
-      "error"
-    );
-
-    return;
-
-  }
-
-  if (!telegramId) {
-
-    message(
-      "شناسه Telegram دریافت نشده است.",
-      "error"
+      "رمز مدیریت وارد نشده است.",
+      true
     );
 
     return;
@@ -737,45 +335,266 @@ async function uploadReceipt() {
   }
 
   message(
-    "در حال آماده‌سازی و ارسال رسید...",
-    "info"
+    "در حال دریافت رسیدها..."
   );
 
   try {
 
-    const imageData =
-      await compressImage(
-        file
+    const response =
+      await fetch(
+        "/api/admin/receipts-v2",
+        {
+          headers: {
+            "x-admin-secret":
+              adminSecret
+          }
+        }
       );
 
-    const amount =
-      method === "full"
-        ? 3780000
-        : 945000;
+    const data =
+      await response.json();
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      localStorage.removeItem(
+        "tondropy_admin_secret"
+      );
+
+      throw new Error(
+        "رمز مدیریت صحیح نیست."
+      );
+
+    }
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.error ||
+        "خطا در دریافت اطلاعات."
+      );
+
+    }
+
+    render(
+      data.receipts ||
+      []
+    );
+
+    message(
+      `تعداد رسیدها: ${
+        (data.receipts || [])
+          .length
+      }`
+    );
+
+  } catch (error) {
+
+    message(
+      error.message ||
+      "ارتباط با API برقرار نشد.",
+      true
+    );
+
+  }
+
+}
+
+
+/*
+=========================================================
+RENDER
+=========================================================
+*/
+
+function render(
+  receipts
+) {
+
+  const content =
+    document.getElementById(
+      "content"
+    );
+
+  if (!receipts.length) {
+
+    content.innerHTML =
+      `
+      <div class="card empty">
+        هنوز رسیدی ثبت نشده است.
+      </div>
+      `;
+
+    return;
+
+  }
+
+  content.innerHTML =
+    receipts
+      .map(
+        receipt => {
+
+          const pending =
+            receipt.status ===
+            "pending";
+
+          return `
+            <div class="card receipt">
+
+              <div class="row">
+                <div class="label">
+                  Telegram ID
+                </div>
+
+                <div class="value">
+                  ${escapeHtml(
+                    receipt.telegram_id
+                  )}
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="label">
+                  Username
+                </div>
+
+                <div class="value">
+                  ${
+                    receipt.username
+                      ? "@" +
+                        escapeHtml(
+                          receipt.username
+                        )
+                      : "-"
+                  }
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="label">
+                  مبلغ
+                </div>
+
+                <div class="value">
+                  ${number(
+                    receipt.amount
+                  )}
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="label">
+                  وضعیت
+                </div>
+
+                <div class="value">
+                  ${escapeHtml(
+                    receipt.status
+                  )}
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="label">
+                  تاریخ
+                </div>
+
+                <div class="value">
+                  ${date(
+                    receipt.created_at
+                  )}
+                </div>
+              </div>
+
+              ${
+                pending
+                  ? `
+                    <div class="actions">
+
+                      <button
+                        class="approve"
+                        onclick="review('${escapeHtml(
+                          receipt.id
+                        )}','approved')"
+                      >
+                        ✅ تایید
+                      </button>
+
+                      <button
+                        class="reject"
+                        onclick="review('${escapeHtml(
+                          receipt.id
+                        )}','rejected')"
+                      >
+                        ❌ رد
+                      </button>
+
+                    </div>
+                  `
+                  : ""
+              }
+
+            </div>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+/*
+=========================================================
+REVIEW
+=========================================================
+*/
+
+async function review(
+  receiptId,
+  status
+) {
+
+  const text =
+    status ===
+    "approved"
+      ? "تایید"
+      : "رد";
+
+  if (
+    !confirm(
+      `آیا از ${text} این رسید مطمئن هستید؟`
+    )
+  ) {
+    return;
+  }
+
+  try {
 
     const response =
       await fetch(
-        "/api/upload-receipt",
+        "/api/admin/review",
         {
           method:
             "POST",
 
           headers: {
             "Content-Type":
-              "application/json"
+              "application/json",
+
+            "x-admin-secret":
+              adminSecret
           },
 
           body:
             JSON.stringify({
-
-              telegramId,
-
-              username,
-
-              amount,
-
-              imageData
-
+              receiptId,
+              status
             })
         }
       );
@@ -783,29 +602,33 @@ async function uploadReceipt() {
     const data =
       await response.json();
 
-    if (!response.ok ||
-        !data.success) {
+    if (
+      !response.ok ||
+      !data.success
+    ) {
 
       throw new Error(
         data.error ||
-        "ارسال رسید ناموفق بود."
+        "عملیات ناموفق بود."
       );
 
     }
 
-    hide("form");
-
     message(
-      "✅ رسید با موفقیت ارسال شد و در انتظار بررسی مدیریت است.",
-      "success"
+      status ===
+      "approved"
+        ? "رسید تایید و حساب کاربر فعال شد. ✅"
+        : "رسید رد شد. ❌"
     );
+
+    await loadReceipts();
 
   } catch (error) {
 
     message(
       error.message ||
-      "خطا در ارسال رسید.",
-      "error"
+      "خطا در انجام عملیات.",
+      true
     );
 
   }
@@ -819,10 +642,7 @@ START
 =========================================================
 */
 
-window.addEventListener(
-  "load",
-  authenticate
-);
+loadReceipts();
 
 </script>
 
