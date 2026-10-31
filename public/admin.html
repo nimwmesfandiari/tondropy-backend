@@ -1,526 +1,638 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
-<title>TON Dropy - پنل مدیریت</title>
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>
+TON Dropy - مدیریت پرداخت‌ها
+</title>
 
 <style>
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
+
+* {
+  box-sizing: border-box;
 }
 
-html,body{
-  margin:0;
-  padding:0;
-  min-height:100%;
-}
+body {
 
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;
+  margin: 0;
+
+  padding: 15px;
+
   background:
-    radial-gradient(circle at 100% 0%,rgba(10,132,255,.14),transparent 35%),
-    radial-gradient(circle at 0% 100%,rgba(10,132,255,.08),transparent 35%),
-    #f4f7fc;
-  color:#111827;
-  padding:12px;
+    linear-gradient(
+      135deg,
+      #f4f8ff,
+      #eef4ff
+    );
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  color: #111827;
 }
 
-.container{
-  width:100%;
-  max-width:900px;
-  margin:auto;
+.container {
+
+  max-width: 950px;
+
+  margin: auto;
 }
 
-/* HEADER */
+.header {
 
-.header{
-  background:rgba(255,255,255,.88);
-  backdrop-filter:blur(25px);
-  -webkit-backdrop-filter:blur(25px);
-  border:1px solid rgba(255,255,255,.95);
-  border-radius:28px;
-  padding:20px;
-  box-shadow:0 15px 45px rgba(0,0,0,.07);
-  margin-bottom:15px;
+  background:
+    rgba(255,255,255,.94);
+
+  border-radius: 25px;
+
+  padding: 22px;
+
+  margin-bottom: 16px;
+
+  box-shadow:
+    0 12px 40px
+    rgba(30,80,150,.08);
+
+  border:
+    1px solid
+    rgba(255,255,255,.8);
 }
 
-.header-top{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
+.title {
+
+  font-size: 27px;
+
+  font-weight: 950;
+
+  color: #2878ed;
 }
 
-.title{
-  color:#347ff0;
-  font-size:25px;
-  font-weight:900;
+.subtitle {
+
+  color: #64748b;
+
+  margin-top: 7px;
+
+  font-size: 14px;
 }
 
-.subtitle{
-  color:#64748b;
-  font-size:13px;
-  margin-top:6px;
+.refresh {
+
+  width: 100%;
+
+  margin-top: 18px;
+
+  border: 0;
+
+  border-radius: 15px;
+
+  padding: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2878ed,
+      #1260d8
+    );
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 900;
+
+  cursor: pointer;
 }
 
-.online{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  background:#eaf8ef;
-  color:#16a34a;
-  border-radius:999px;
-  padding:9px 13px;
-  font-size:12px;
-  font-weight:900;
+.status {
+
+  background:
+    #eff6ff;
+
+  color:
+    #075985;
+
+  border-radius:
+    15px;
+
+  padding:
+    13px;
+
+  margin-bottom:
+    15px;
+
+  font-weight:
+    700;
 }
 
-.online-dot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-  background:#22c55e;
+.status.error {
+
+  background:
+    #fef2f2;
+
+  color:
+    #b91c1c;
 }
 
-.controls{
-  display:flex;
-  gap:10px;
-  margin-top:18px;
+.card {
+
+  background:
+    rgba(255,255,255,.96);
+
+  border-radius:
+    22px;
+
+  padding:
+    18px;
+
+  margin-bottom:
+    15px;
+
+  box-shadow:
+    0 10px 35px
+    rgba(30,80,150,.07);
+
+  border:
+    1px solid
+    #e5e7eb;
 }
 
-button{
-  font-family:inherit;
-  cursor:pointer;
-  -webkit-appearance:none;
+.receipt-header {
+
+  display:
+    flex;
+
+  justify-content:
+    space-between;
+
+  align-items:
+    center;
+
+  gap:
+    10px;
+
+  margin-bottom:
+    14px;
 }
 
-.refresh{
-  flex:1;
-  border:0;
-  border-radius:17px;
-  padding:15px;
-  background:#3b82f6;
-  color:white;
-  font-size:15px;
-  font-weight:900;
-  box-shadow:0 9px 24px rgba(59,130,246,.25);
+.receipt-title {
+
+  font-size:
+    18px;
+
+  font-weight:
+    950;
 }
 
-.refresh:disabled{
-  opacity:.65;
+.badge {
+
+  padding:
+    7px 11px;
+
+  border-radius:
+    999px;
+
+  font-size:
+    12px;
+
+  font-weight:
+    900;
 }
 
-.logout{
-  border:1px solid #e2e8f0;
-  border-radius:17px;
-  padding:15px 20px;
-  background:white;
-  color:#475569;
-  font-weight:800;
+.badge.pending {
+
+  background:
+    #fff7ed;
+
+  color:
+    #c2410c;
 }
 
-/* MESSAGE */
+.badge.approved {
 
-.message{
-  display:none;
-  border-radius:18px;
-  padding:14px 16px;
-  margin-bottom:15px;
-  font-size:13px;
-  line-height:1.8;
-  font-weight:800;
+  background:
+    #dcfce7;
+
+  color:
+    #15803d;
 }
 
-.message.show{
-  display:block;
+.badge.rejected {
+
+  background:
+    #fee2e2;
+
+  color:
+    #b91c1c;
 }
 
-.message.success{
-  background:#ecfdf3;
-  color:#15803d;
-  border:1px solid #bbf7d0;
+.user-box {
+
+  background:
+    #f8fafc;
+
+  border-radius:
+    17px;
+
+  padding:
+    14px;
+
+  margin-bottom:
+    14px;
+
+  border:
+    1px solid
+    #e2e8f0;
 }
 
-.message.error{
-  background:#fef2f2;
-  color:#b91c1c;
-  border:1px solid #fecaca;
+.user-name {
+
+  font-size:
+    17px;
+
+  font-weight:
+    950;
+
+  margin-bottom:
+    8px;
 }
 
-.message.info{
-  background:#eff6ff;
-  color:#075985;
-  border:1px solid #bfdbfe;
+.user-row {
+
+  display:
+    flex;
+
+  justify-content:
+    space-between;
+
+  gap:
+    10px;
+
+  padding:
+    5px 0;
 }
 
-/* STATS */
+.label {
 
-.stats-card{
-  background:rgba(255,255,255,.86);
-  backdrop-filter:blur(22px);
-  -webkit-backdrop-filter:blur(22px);
-  border:1px solid rgba(255,255,255,.95);
-  border-radius:25px;
-  padding:18px;
-  box-shadow:0 10px 35px rgba(0,0,0,.05);
-  margin-bottom:15px;
+  color:
+    #64748b;
+
+  font-size:
+    12px;
 }
 
-.stats-title{
-  font-size:18px;
-  font-weight:900;
-  margin-bottom:15px;
+.value {
+
+  font-weight:
+    800;
+
+  word-break:
+    break-word;
 }
 
-.stats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
+.amount {
+
+  font-size:
+    22px;
+
+  font-weight:
+    950;
+
+  color:
+    #111827;
 }
 
-.stat{
-  background:#f8fafc;
-  border-radius:17px;
-  padding:14px 7px;
-  text-align:center;
+.receipt-image-box {
+
+  margin-top:
+    15px;
+
+  background:
+    #f8fafc;
+
+  border-radius:
+    18px;
+
+  padding:
+    10px;
+
+  text-align:
+    center;
+
+  border:
+    1px solid
+    #e2e8f0;
 }
 
-.stat-number{
-  font-size:22px;
-  font-weight:900;
+.receipt-image-title {
+
+  text-align:
+    right;
+
+  font-size:
+    13px;
+
+  font-weight:
+    900;
+
+  color:
+    #475569;
+
+  padding:
+    4px 5px 10px;
 }
 
-.stat-label{
-  color:#64748b;
-  font-size:11px;
-  margin-top:5px;
+.receipt-image {
+
+  display:
+    block;
+
+  width:
+    100%;
+
+  max-height:
+    520px;
+
+  object-fit:
+    contain;
+
+  border-radius:
+    13px;
+
+  background:
+    white;
+
+  cursor:
+    zoom-in;
 }
 
-/* LOADING */
+.no-image {
 
-.loading,
-.empty,
-.error{
-  background:rgba(255,255,255,.88);
-  border:1px solid rgba(255,255,255,.95);
-  border-radius:25px;
-  padding:45px 20px;
-  text-align:center;
-  box-shadow:0 10px 35px rgba(0,0,0,.05);
+  padding:
+    35px 10px;
+
+  color:
+    #94a3b8;
+
+  font-size:
+    14px;
 }
 
-.spinner{
-  width:44px;
-  height:44px;
-  margin:0 auto 17px;
-  border-radius:50%;
-  border:5px solid #dbeafe;
-  border-top-color:#3b82f6;
-  animation:spin .8s linear infinite;
+.actions {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    10px;
+
+  margin-top:
+    17px;
 }
 
-@keyframes spin{
-  to{transform:rotate(360deg)}
+.actions button {
+
+  border:
+    0;
+
+  border-radius:
+    15px;
+
+  padding:
+    14px;
+
+  font-weight:
+    950;
+
+  font-size:
+    15px;
+
+  cursor:
+    pointer;
 }
 
-.loading-text{
-  font-size:16px;
-  font-weight:800;
+.approve {
+
+  background:
+    #22c55e;
+
+  color:
+    white;
 }
 
-.empty-icon{
-  font-size:48px;
-  margin-bottom:10px;
+.reject {
+
+  background:
+    #fee2e2;
+
+  color:
+    #dc2626;
 }
 
-.empty-title{
-  font-size:18px;
-  font-weight:900;
+.empty {
+
+  text-align:
+    center;
+
+  padding:
+    45px 20px;
+
+  color:
+    #64748b;
 }
 
-.empty-text{
-  color:#64748b;
-  font-size:13px;
-  margin-top:8px;
+.modal {
+
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  background:
+    rgba(0,0,0,.82);
+
+  display:
+    none;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    15px;
+
+  z-index:
+    9999;
 }
 
-.error-title{
-  color:#b91c1c;
-  font-size:18px;
-  font-weight:900;
+.modal.show {
+
+  display:
+    flex;
 }
 
-.error-text{
-  color:#7f1d1d;
-  margin-top:10px;
-  font-size:13px;
-  line-height:1.9;
-  word-break:break-word;
+.modal img {
+
+  max-width:
+    100%;
+
+  max-height:
+    92vh;
+
+  object-fit:
+    contain;
+
+  border-radius:
+    14px;
+
+  background:
+    white;
 }
 
-/* RECEIPTS */
+.close {
 
-.receipts{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+  position:
+    fixed;
+
+  top:
+    15px;
+
+  left:
+    15px;
+
+  width:
+    45px;
+
+  height:
+    45px;
+
+  border:
+    0;
+
+  border-radius:
+    50%;
+
+  background:
+    white;
+
+  color:
+    #111827;
+
+  font-size:
+    25px;
+
+  font-weight:
+    900;
+
+  cursor:
+    pointer;
 }
 
-.receipt{
-  background:rgba(255,255,255,.88);
-  backdrop-filter:blur(22px);
-  -webkit-backdrop-filter:blur(22px);
-  border:1px solid rgba(255,255,255,.95);
-  border-radius:25px;
-  padding:18px;
-  box-shadow:0 10px 35px rgba(0,0,0,.06);
-  transition:.25s;
-}
+@media (max-width:600px) {
 
-.receipt-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-  margin-bottom:15px;
-}
-
-.username{
-  font-size:18px;
-  font-weight:900;
-}
-
-.telegram-id{
-  direction:ltr;
-  text-align:right;
-  color:#64748b;
-  font-size:12px;
-  margin-top:5px;
-}
-
-.pending{
-  background:#fff7ed;
-  color:#c2410c;
-  border-radius:999px;
-  padding:7px 10px;
-  font-size:11px;
-  font-weight:900;
-  white-space:nowrap;
-}
-
-.details{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:9px;
-  margin-bottom:15px;
-}
-
-.detail{
-  background:#f8fafc;
-  border-radius:15px;
-  padding:12px;
-}
-
-.detail-label{
-  color:#64748b;
-  font-size:10px;
-  margin-bottom:5px;
-}
-
-.detail-value{
-  font-size:13px;
-  font-weight:800;
-  word-break:break-word;
-}
-
-.amount{
-  color:#1677e8;
-  font-size:16px;
-}
-
-/* MAIN ACTIONS */
-
-.actions{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
-.approve,
-.reject,
-.block,
-.unblock{
-  border:0;
-  border-radius:16px;
-  padding:14px 8px;
-  font-size:13px;
-  font-weight:900;
-}
-
-.approve{
-  background:#22c55e;
-  color:white;
-}
-
-.reject{
-  background:#fee2e2;
-  color:#dc2626;
-}
-
-/* USER CONTROL */
-
-.user-controls{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:10px;
-}
-
-.block{
-  background:#111827;
-  color:white;
-}
-
-.unblock{
-  background:#e0f2fe;
-  color:#0369a1;
-}
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
-@media(max-width:600px){
-
-  body{
-    padding:10px;
+  body {
+    padding: 10px;
   }
 
-  .title{
-    font-size:22px;
+  .card {
+    padding: 14px;
   }
 
-  .details{
-    grid-template-columns:1fr 1fr;
+  .actions {
+    grid-template-columns:
+      1fr;
   }
 
-  .actions,
-  .user-controls{
-    grid-template-columns:1fr 1fr;
+  .receipt-image {
+    max-height:
+      450px;
   }
 
 }
+
 </style>
+
 </head>
+
 
 <body>
 
 <div class="container">
 
-  <!-- HEADER -->
+  <div class="header">
 
-  <section class="header">
-
-    <div class="header-top">
-
-      <div>
-        <div class="title">
-          TON Dropy
-        </div>
-
-        <div class="subtitle">
-          پنل مدیریت پرداخت‌ها و فعال‌سازی کاربران
-        </div>
-      </div>
-
-      <div class="online">
-        <span class="online-dot"></span>
-        آنلاین
-      </div>
-
+    <div class="title">
+      TON Dropy
     </div>
 
-    <div class="controls">
-
-      <button
-        id="refreshBtn"
-        class="refresh"
-        type="button"
-        onclick="loadReceipts()"
-      >
-        🔄 بروزرسانی رسیدها
-      </button>
-
-      <button
-        class="logout"
-        type="button"
-        onclick="logout()"
-      >
-        خروج
-      </button>
-
+    <div class="subtitle">
+      پنل مدیریت پرداخت‌ها و فعال‌سازی کاربران
     </div>
 
-  </section>
+    <button
+      class="refresh"
+      onclick="loadReceipts()"
+    >
+      🔄 بروزرسانی رسیدها
+    </button>
 
+  </div>
 
-  <!-- MESSAGE -->
 
   <div
     id="message"
-    class="message"
+    class="status"
+  >
+    در حال دریافت اطلاعات...
+  </div>
+
+
+  <div
+    id="content"
   ></div>
 
-
-  <!-- STATS -->
-
-  <section class="stats-card">
-
-    <div class="stats-title">
-      وضعیت پرداخت‌ها
-    </div>
-
-    <div class="stats">
-
-      <div class="stat">
-        <div id="totalCount" class="stat-number">-</div>
-        <div class="stat-label">کل رسیدها</div>
-      </div>
-
-      <div class="stat">
-        <div id="pendingCount" class="stat-number">-</div>
-        <div class="stat-label">در انتظار</div>
-      </div>
-
-      <div class="stat">
-        <div id="pendingAmount" class="stat-number">-</div>
-        <div class="stat-label">مبلغ انتظار</div>
-      </div>
-
-    </div>
-
-  </section>
+</div>
 
 
-  <!-- CONTENT -->
+<!-- IMAGE MODAL -->
 
-  <main id="content">
+<div
+  id="imageModal"
+  class="modal"
+  onclick="closeImage()"
+>
 
-    <div class="loading">
+  <button
+    class="close"
+    onclick="closeImage()"
+  >
+    ×
+  </button>
 
-      <div class="spinner"></div>
-
-      <div class="loading-text">
-        در حال دریافت رسیدها...
-      </div>
-
-    </div>
-
-  </main>
+  <img
+    id="modalImage"
+    src=""
+    alt="رسید پرداخت"
+    onclick="event.stopPropagation()"
+  >
 
 </div>
 
@@ -530,516 +642,349 @@ button:disabled{
 "use strict";
 
 
-/* =====================================================
-   ADMIN CONFIG
-===================================================== */
+/*
+=========================================================
+ADMIN SECRET
+=========================================================
+*/
 
-const urlParams =
+const params =
   new URLSearchParams(
-    window.location.search
+    location.search
   );
 
-const ADMIN_SECRET =
-  urlParams.get("secret") || "";
 
-const API_TIMEOUT = 15000;
-
-let loading = false;
-
-
-/* =====================================================
-   HTML ESCAPE
-===================================================== */
-
-function escapeHtml(value){
-
-  if(
-    value === null ||
-    value === undefined
-  ){
-    return "";
-  }
-
-  return String(value)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
+let adminSecret =
+  params.get("secret") ||
+  localStorage.getItem(
+    "tondropy_admin_secret"
+  );
 
 
-/* =====================================================
-   NUMBER
-===================================================== */
+if (!adminSecret) {
 
-function formatNumber(value){
-
-  const number =
-    Number(value);
-
-  if(
-    !Number.isFinite(number)
-  ){
-    return "0";
-  }
-
-  return number.toLocaleString("fa-IR");
-}
-
-
-/* =====================================================
-   DATE
-===================================================== */
-
-function formatDate(value){
-
-  if(!value){
-    return "-";
-  }
-
-  try{
-
-    const date =
-      new Date(value);
-
-    if(
-      Number.isNaN(
-        date.getTime()
-      )
-    ){
-      return String(value);
-    }
-
-    return date.toLocaleString(
-      "fa-IR",
-      {
-        year:"numeric",
-        month:"2-digit",
-        day:"2-digit",
-        hour:"2-digit",
-        minute:"2-digit"
-      }
+  adminSecret =
+    prompt(
+      "رمز پنل مدیریت را وارد کنید:"
     );
 
-  }catch(error){
 
-    return String(value);
+  if (adminSecret) {
+
+    localStorage.setItem(
+      "tondropy_admin_secret",
+      adminSecret
+    );
 
   }
+
 }
 
 
-/* =====================================================
-   METHOD
-===================================================== */
+/*
+=========================================================
+MESSAGE
+=========================================================
+*/
 
-function methodText(method){
-
-  if(method === "full"){
-    return "پرداخت کامل";
-  }
-
-  if(method === "installment"){
-    return "اقساطی";
-  }
-
-  return method || "-";
-}
-
-
-/* =====================================================
-   MESSAGE
-===================================================== */
-
-function showMessage(text,type){
+function message(
+  text,
+  error = false
+) {
 
   const el =
     document.getElementById(
       "message"
     );
 
-  el.className =
-    "message show " +
-    (type || "info");
 
-  el.innerHTML =
+  el.innerText =
     text;
+
+
+  el.className =
+    error
+      ? "status error"
+      : "status";
+
 }
 
 
-/* =====================================================
-   REQUEST WITH TIMEOUT
-===================================================== */
+/*
+=========================================================
+NUMBER
+=========================================================
+*/
 
-async function request(
-  url,
-  options
-){
+function number(
+  value
+) {
 
-  const controller =
-    new AbortController();
-
-  const timeout =
-    setTimeout(
-      function(){
-        controller.abort();
-      },
-      API_TIMEOUT
-    );
-
-  try{
-
-    return await fetch(
-      url,
-      {
-        ...(options || {}),
-        signal:
-          controller.signal
-      }
-    );
-
-  }finally{
-
-    clearTimeout(timeout);
-
-  }
-}
+  const n =
+    Number(value);
 
 
-/* =====================================================
-   NORMALIZE API
-===================================================== */
-
-function normalizeReceipts(data){
-
-  if(
-    Array.isArray(data)
-  ){
-    return data;
-  }
-
-  if(
-    data &&
-    Array.isArray(data.data)
-  ){
-    return data.data;
-  }
-
-  if(
-    data &&
-    Array.isArray(data.receipts)
-  ){
-    return data.receipts;
-  }
-
-  return [];
-}
-
-
-/* =====================================================
-   PARSE API
-===================================================== */
-
-async function parseResponse(response){
-
-  const text =
-    await response.text();
-
-  let data = null;
-
-  if(text){
-
-    try{
-      data = JSON.parse(text);
-    }catch(error){
-      data = null;
-    }
-
-  }
-
-  if(!response.ok){
-
-    throw new Error(
-      (
-        data &&
-        (
-          data.message ||
-          data.error
-        )
+  return Number.isFinite(n)
+    ? n.toLocaleString(
+        "fa-IR"
       )
-      ||
-      text
-      ||
-      (
-        "خطای HTTP " +
-        response.status
-      )
-    );
+    : "-";
 
-  }
-
-  return data;
 }
 
 
-/* =====================================================
-   STATS
-===================================================== */
+/*
+=========================================================
+DATE
+=========================================================
+*/
 
-function updateStats(
-  all,
-  pending
-){
+function date(
+  value
+) {
 
-  document.getElementById(
-    "totalCount"
-  ).innerText =
-    formatNumber(
-      all.length
+  if (!value) {
+    return "-";
+  }
+
+
+  try {
+
+    return new Date(
+      value
+    ).toLocaleString(
+      "fa-IR"
     );
 
-  document.getElementById(
-    "pendingCount"
-  ).innerText =
-    formatNumber(
-      pending.length
-    );
+  } catch (_) {
 
-  let amount = 0;
+    return value;
 
-  pending.forEach(
-    function(item){
+  }
 
-      amount +=
-        Number(
-          item.amount
-        ) || 0;
-
-    }
-  );
-
-  document.getElementById(
-    "pendingAmount"
-  ).innerText =
-    formatNumber(amount);
 }
 
 
-/* =====================================================
-   LOAD RECEIPTS
-===================================================== */
+/*
+=========================================================
+ESCAPE HTML
+=========================================================
+*/
 
-async function loadReceipts(){
+function escapeHtml(
+  value
+) {
 
-  if(loading){
-    return;
-  }
+  return String(
+    value ?? ""
+  )
 
-  loading = true;
+    .replace(
+      /&/g,
+      "&amp;"
+    )
 
-  const button =
-    document.getElementById(
-      "refreshBtn"
+    .replace(
+      /</g,
+      "&lt;"
+    )
+
+    .replace(
+      />/g,
+      "&gt;"
+    )
+
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+
+    .replace(
+      /'/g,
+      "&#039;"
     );
 
-  const content =
-    document.getElementById(
-      "content"
-    );
+}
 
 
-  if(!ADMIN_SECRET){
+/*
+=========================================================
+IMAGE URL
+=========================================================
+*/
 
-    content.innerHTML = `
-      <div class="error">
-        <div class="error-title">
-          خطای دسترسی
-        </div>
+function getImageSource(
+  receipt
+) {
 
-        <div class="error-text">
-          secret مدیریت در آدرس صفحه وجود ندارد.
-        </div>
-      </div>
-    `;
+  const image =
+    receipt.image_data;
 
-    loading = false;
 
-    return;
+  if (!image) {
+    return "";
   }
 
 
-  button.disabled = true;
+  /*
+   * اگر image_data خودش Data URL باشد
+   */
 
-  button.innerText =
-    "⏳ در حال دریافت...";
+  if (
+    typeof image === "string" &&
+    image.startsWith("data:")
+  ) {
 
+    return image;
 
-  content.innerHTML = `
-    <div class="loading">
-      <div class="spinner"></div>
-      <div class="loading-text">
-        در حال دریافت رسیدها...
-      </div>
-    </div>
-  `;
+  }
 
 
-  try{
+  /*
+   * اگر Base64 خام باشد
+   */
 
-    const endpoint =
-      "/api/admin/receipts-v2?secret=" +
-      encodeURIComponent(
-        ADMIN_SECRET
+  if (
+    typeof image === "string"
+  ) {
+
+    const clean =
+      image.replace(
+        /^data:image\/[^;]+;base64,/,
+        ""
       );
 
 
+    if (
+      clean.length > 100
+    ) {
+
+      return
+        "data:image/jpeg;base64," +
+        clean;
+
+    }
+
+  }
+
+
+  return "";
+
+}
+
+
+/*
+=========================================================
+LOAD RECEIPTS
+=========================================================
+*/
+
+async function loadReceipts() {
+
+  if (!adminSecret) {
+
+    message(
+      "رمز مدیریت وارد نشده است.",
+      true
+    );
+
+    return;
+
+  }
+
+
+  message(
+    "در حال دریافت رسیدها..."
+  );
+
+
+  try {
+
     const response =
-      await request(
-        endpoint,
+      await fetch(
+        "/api/admin/receipts-v2",
         {
-          method:"GET",
 
-          headers:{
-            "Accept":
-              "application/json"
-          },
+          headers: {
 
-          cache:"no-store"
+            "x-admin-secret":
+              adminSecret
+
+          }
+
         }
       );
 
 
     const data =
-      await parseResponse(
-        response
+      await response.json();
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      localStorage.removeItem(
+        "tondropy_admin_secret"
       );
 
 
-    const all =
-      normalizeReceipts(
-        data
-      );
-
-
-    const pending =
-      all.filter(
-        function(item){
-
-          return String(
-            item.status || ""
-          ).toLowerCase()
-          === "pending";
-
-        }
-      );
-
-
-    updateStats(
-      all,
-      pending
-    );
-
-
-    renderReceipts(
-      pending
-    );
-
-
-    if(pending.length){
-
-      showMessage(
-        "✅ " +
-        formatNumber(
-          pending.length
-        ) +
-        " رسید در انتظار تأیید وجود دارد.",
-        "success"
-      );
-
-    }else{
-
-      showMessage(
-        "در حال حاضر رسید pending وجود ندارد.",
-        "info"
+      throw new Error(
+        "رمز مدیریت صحیح نیست."
       );
 
     }
 
 
-  }catch(error){
+    if (
+      !response.ok ||
+      !data.success
+    ) {
 
-    console.error(
-      "ADMIN LOAD ERROR:",
-      error
-    );
-
-
-    let text =
-      error?.message ||
-      "خطای نامشخص";
-
-
-    if(
-      error?.name ===
-      "AbortError"
-    ){
-
-      text =
-        "سرور در مدت ۱۵ ثانیه پاسخ نداد.";
+      throw new Error(
+        data.error ||
+        "خطا در دریافت اطلاعات."
+      );
 
     }
 
 
-    content.innerHTML = `
-      <div class="error">
-
-        <div class="error-title">
-          دریافت رسیدها ناموفق بود
-        </div>
-
-        <div class="error-text">
-          ${escapeHtml(text)}
-
-          <br><br>
-
-          <button
-            class="refresh"
-            onclick="loadReceipts()"
-          >
-            🔄 تلاش مجدد
-          </button>
-        </div>
-
-      </div>
-    `;
-
-
-    showMessage(
-      "❌ ارتباط با API با خطا مواجه شد.",
-      "error"
+    render(
+      data.receipts || []
     );
 
 
-  }finally{
+    message(
+      `تعداد رسیدها: ${
+        (data.receipts || [])
+          .length
+      }`
+    );
 
-    loading = false;
 
-    button.disabled = false;
+  } catch (error) {
 
-    button.innerText =
-      "🔄 بروزرسانی رسیدها";
+    message(
+      error.message ||
+      "خطا در دریافت رسیدها.",
+      true
+    );
 
   }
 
 }
 
 
-/* =====================================================
-   RENDER
-===================================================== */
+/*
+=========================================================
+RENDER
+=========================================================
+*/
 
-function renderReceipts(receipts){
+function render(
+  receipts
+) {
 
   const content =
     document.getElementById(
@@ -1047,826 +992,465 @@ function renderReceipts(receipts){
     );
 
 
-  if(
-    !receipts ||
-    receipts.length === 0
-  ){
+  if (
+    !receipts.length
+  ) {
 
     content.innerHTML = `
-      <div class="empty">
 
-        <div class="empty-icon">
-          ✅
-        </div>
+      <div class="card empty">
 
-        <div class="empty-title">
-          رسیدی در انتظار تأیید نیست
-        </div>
-
-        <div class="empty-text">
-          در حال حاضر رسید pending وجود ندارد.
-        </div>
+        هنوز رسیدی ثبت نشده است.
 
       </div>
+
     `;
 
     return;
+
   }
 
 
-  const sorted =
-    [...receipts].sort(
-      function(a,b){
+  content.innerHTML =
+    receipts
+      .map(
+        receipt => {
 
-        return (
-          new Date(
-            b.created_at || 0
-          ).getTime()
-          -
-          new Date(
-            a.created_at || 0
-          ).getTime()
-        );
-
-      }
-    );
+          const pending =
+            receipt.status ===
+            "pending";
 
 
-  content.innerHTML = `
-    <div class="receipts">
+          const image =
+            getImageSource(
+              receipt
+            );
 
-      ${sorted
-        .map(
-          function(item){
-            return renderReceipt(item);
-          }
-        )
-        .join("")
-      }
 
-    </div>
-  `;
+          const fullName =
+            [
+              receipt.first_name,
+              receipt.last_name
+            ]
+            .filter(Boolean)
+            .join(" ");
+
+
+          const username =
+            receipt.username
+              ? "@" +
+                receipt.username
+              : "-";
+
+
+          const statusClass =
+            receipt.status ===
+            "approved"
+
+              ? "approved"
+
+              : receipt.status ===
+                "rejected"
+
+                ? "rejected"
+
+                : "pending";
+
+
+          const statusText =
+            receipt.status ===
+            "approved"
+
+              ? "تأیید شده"
+
+              : receipt.status ===
+                "rejected"
+
+                ? "رد شده"
+
+                : "در انتظار بررسی";
+
+
+          return `
+
+            <div class="card receipt">
+
+              <div class="receipt-header">
+
+                <div class="receipt-title">
+                  🧾 رسید پرداخت
+                </div>
+
+                <div
+                  class="badge ${statusClass}"
+                >
+                  ${statusText}
+                </div>
+
+              </div>
+
+
+              <div class="user-box">
+
+                <div class="user-name">
+
+                  👤
+
+                  ${
+                    escapeHtml(
+                      fullName ||
+                      "کاربر TON Dropy"
+                    )
+                  }
+
+                </div>
+
+
+                <div class="user-row">
+
+                  <span class="label">
+                    Telegram ID
+                  </span>
+
+                  <span class="value">
+                    ${
+                      escapeHtml(
+                        receipt.telegram_id ||
+                        "-"
+                      )
+                    }
+                  </span>
+
+                </div>
+
+
+                <div class="user-row">
+
+                  <span class="label">
+                    Username
+                  </span>
+
+                  <span class="value">
+                    ${
+                      escapeHtml(
+                        username
+                      )
+                    }
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div class="user-row">
+
+                <span class="label">
+                  مبلغ پرداخت
+                </span>
+
+                <span class="amount">
+                  ${
+                    number(
+                      receipt.amount
+                    )
+                  }
+                </span>
+
+              </div>
+
+
+              <div class="user-row">
+
+                <span class="label">
+                  وضعیت
+                </span>
+
+                <span class="value">
+                  ${
+                    escapeHtml(
+                      statusText
+                    )
+                  }
+                </span>
+
+              </div>
+
+
+              <div class="user-row">
+
+                <span class="label">
+                  تاریخ ثبت
+                </span>
+
+                <span class="value">
+                  ${
+                    date(
+                      receipt.created_at
+                    )
+                  }
+                </span>
+
+              </div>
+
+
+              <div class="receipt-image-box">
+
+                <div class="receipt-image-title">
+                  📷 تصویر رسید پرداخت
+                </div>
+
+                ${
+                  image
+
+                    ? `
+
+                      <img
+                        class="receipt-image"
+                        src="${image}"
+                        alt="رسید پرداخت"
+                        onclick="openImage(this.src)"
+                      >
+
+                    `
+
+                    : `
+
+                      <div class="no-image">
+                        تصویر رسید در اطلاعات این رکورد وجود ندارد.
+                      </div>
+
+                    `
+                }
+
+              </div>
+
+
+              ${
+                pending
+
+                  ? `
+
+                    <div class="actions">
+
+                      <button
+                        class="approve"
+                        onclick="review(
+                          '${escapeHtml(receipt.id)}',
+                          'approved'
+                        )"
+                      >
+                        ✅ تأیید پرداخت
+                      </button>
+
+
+                      <button
+                        class="reject"
+                        onclick="review(
+                          '${escapeHtml(receipt.id)}',
+                          'rejected'
+                        )"
+                      >
+                        ❌ رد پرداخت
+                      </button>
+
+                    </div>
+
+                  `
+
+                  : ""
+
+              }
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join("");
+
 }
 
 
-/* =====================================================
-   RECEIPT CARD
-===================================================== */
-
-function renderReceipt(receipt){
-
-  const user =
-    receipt.users &&
-    typeof receipt.users === "object"
-      ? receipt.users
-      : {};
-
-
-  const username =
-    user.username ||
-    receipt.username ||
-    "کاربر";
-
-
-  const telegramId =
-    user.telegram_id ||
-    receipt.telegram_id ||
-    "-";
-
-
-  const amount =
-    Number(
-      receipt.amount
-    ) || 0;
-
-
-  const receiptId =
-    receipt.id ||
-    "";
-
-
-  const userId =
-    receipt.user_id ||
-    "";
-
-
-  const currentStatus =
-    String(
-      user.status ||
-      receipt.user_status ||
-      "inactive"
-    ).toLowerCase();
-
-
-  const blocked =
-    currentStatus ===
-    "blocked";
-
-
-  return `
-    <article
-      class="receipt"
-      id="receipt-${escapeHtml(receiptId)}"
-    >
-
-      <div class="receipt-head">
-
-        <div>
-
-          <div class="username">
-            👤
-            ${escapeHtml(username)}
-          </div>
-
-          <div class="telegram-id">
-            Telegram ID:
-            ${escapeHtml(telegramId)}
-          </div>
-
-        </div>
-
-        <div class="pending">
-          ⏳ در انتظار
-        </div>
-
-      </div>
-
-
-      <div class="details">
-
-        <div class="detail">
-
-          <div class="detail-label">
-            مبلغ
-          </div>
-
-          <div class="detail-value amount">
-            ${formatNumber(amount)}
-            تومان
-          </div>
-
-        </div>
-
-
-        <div class="detail">
-
-          <div class="detail-label">
-            روش پرداخت
-          </div>
-
-          <div class="detail-value">
-            ${escapeHtml(
-              methodText(
-                receipt.method
-              )
-            )}
-          </div>
-
-        </div>
-
-
-        <div class="detail">
-
-          <div class="detail-label">
-            زمان ثبت
-          </div>
-
-          <div class="detail-value">
-            ${escapeHtml(
-              formatDate(
-                receipt.created_at
-              )
-            )}
-          </div>
-
-        </div>
-
-
-        <div class="detail">
-
-          <div class="detail-label">
-            شناسه رسید
-          </div>
-
-          <div
-            class="detail-value"
-            style="font-size:10px"
-          >
-            ${escapeHtml(receiptId)}
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- PAYMENT -->
-
-      <div class="actions">
-
-        <button
-          class="approve"
-          type="button"
-
-          data-receipt-id="${escapeHtml(receiptId)}"
-          data-user-id="${escapeHtml(userId)}"
-
-          onclick="
-            reviewReceipt(
-              this,
-              'approve'
-            )
-          "
-        >
-          ✅ تأیید پرداخت
-        </button>
-
-
-        <button
-          class="reject"
-          type="button"
-
-          data-receipt-id="${escapeHtml(receiptId)}"
-          data-user-id="${escapeHtml(userId)}"
-
-          onclick="
-            reviewReceipt(
-              this,
-              'reject'
-            )
-          "
-        >
-          ❌ رد رسید
-        </button>
-
-      </div>
-
-
-      <!-- USER CONTROL -->
-
-      <div class="user-controls">
-
-        <button
-          class="block"
-          type="button"
-
-          data-user-id="${escapeHtml(userId)}"
-          data-telegram-id="${escapeHtml(telegramId)}"
-
-          onclick="
-            changeUserStatus(
-              this,
-              'block'
-            )
-          "
-        >
-          🚫 مسدودی کاربر
-        </button>
-
-
-        <button
-          class="unblock"
-          type="button"
-
-          data-user-id="${escapeHtml(userId)}"
-          data-telegram-id="${escapeHtml(telegramId)}"
-
-          onclick="
-            changeUserStatus(
-              this,
-              'unblock'
-            )
-          "
-        >
-          🔓 رفع مسدودی
-        </button>
-
-      </div>
-
-    </article>
-  `;
-}
-
-
-/* =====================================================
-   PAYMENT REVIEW
-===================================================== */
-
-async function reviewReceipt(
-  button,
-  action
-){
-
-  const receiptId =
-    button?.dataset?.receiptId || "";
-
-  const userId =
-    button?.dataset?.userId || "";
-
-
-  if(!receiptId){
-
-    showMessage(
-      "❌ شناسه رسید پیدا نشد.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const approve =
-    action === "approve";
-
-
-  const question =
-    approve
-      ? "آیا از تأیید پرداخت و فعال‌سازی حساب کاربر مطمئن هستید؟"
-      : "آیا از رد رسید مطمئن هستید؟";
-
-
-  if(
-    !window.confirm(
-      question
+/*
+=========================================================
+REVIEW
+=========================================================
+*/
+
+async function review(
+  receiptId,
+  status
+) {
+
+  const text =
+    status ===
+    "approved"
+      ? "تأیید"
+      : "رد";
+
+
+  if (
+    !confirm(
+      `آیا از ${text} این رسید مطمئن هستید؟`
     )
-  ){
+  ) {
 
     return;
+
   }
 
 
-  const card =
+  try {
+
+    message(
+      "در حال ثبت نتیجه..."
+    );
+
+
+    const response =
+      await fetch(
+        "/api/admin/review",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "x-admin-secret":
+              adminSecret
+
+          },
+
+          body:
+            JSON.stringify({
+
+              receiptId,
+
+              status
+
+            })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.error ||
+        "عملیات ناموفق بود."
+      );
+
+    }
+
+
+    message(
+
+      status ===
+      "approved"
+
+        ? "پرداخت تأیید شد و حساب کاربر فعال شد. ✅"
+
+        : "پرداخت رد شد. ❌"
+
+    );
+
+
+    await loadReceipts();
+
+
+  } catch (error) {
+
+    message(
+
+      error.message ||
+      "خطا در انجام عملیات.",
+
+      true
+
+    );
+
+  }
+
+}
+
+
+/*
+=========================================================
+IMAGE MODAL
+=========================================================
+*/
+
+function openImage(
+  src
+) {
+
+  const modal =
     document.getElementById(
-      "receipt-" +
-      receiptId
+      "imageModal"
     );
 
 
-  const buttons =
-    card
-      ? card.querySelectorAll("button")
-      : [button];
+  const image =
+    document.getElementById(
+      "modalImage"
+    );
 
 
-  buttons.forEach(
-    function(btn){
-      btn.disabled = true;
-    }
+  image.src =
+    src;
+
+
+  modal.classList.add(
+    "show"
+  );
+
+}
+
+
+function closeImage() {
+
+  const modal =
+    document.getElementById(
+      "imageModal"
+    );
+
+
+  modal.classList.remove(
+    "show"
   );
 
 
-  button.innerText =
-    approve
-      ? "⏳ در حال تأیید..."
-      : "⏳ در حال رد...";
-
-
-  try{
-
-    const payload = {
-
-      receiptId:
-        receiptId,
-
-      receipt_id:
-        receiptId,
-
-      id:
-        receiptId,
-
-      userId:
-        userId,
-
-      user_id:
-        userId,
-
-      action:
-        action,
-
-      status:
-        approve
-          ? "approved"
-          : "rejected",
-
-      decision:
-        approve
-          ? "approved"
-          : "rejected",
-
-      approved:
-        approve,
-
-      secret:
-        ADMIN_SECRET,
-
-      admin_secret:
-        ADMIN_SECRET
-
-    };
-
-
-    const response =
-      await request(
-        "/api/admin/review",
-        {
-          method:"POST",
-
-          headers:{
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify(payload)
-        }
-      );
-
-
-    const text =
-      await response.text();
-
-
-    let data = null;
-
-
-    try{
-      data =
-        text
-          ? JSON.parse(text)
-          : null;
-    }catch(error){
-      data = null;
-    }
-
-
-    if(!response.ok){
-
-      throw new Error(
-        data?.message ||
-        data?.error ||
-        text ||
-        (
-          "HTTP " +
-          response.status
-        )
-      );
-
-    }
-
-
-    if(
-      data &&
-      data.success === false
-    ){
-
-      throw new Error(
-        data.message ||
-        data.error ||
-        "عملیات توسط سرور رد شد."
-      );
-
-    }
-
-
-    showMessage(
-      approve
-        ? "✅ پرداخت تأیید شد؛ حساب کاربر باید فعال شود."
-        : "✅ رسید رد شد؛ کاربر می‌تواند دوباره تراکنش انجام دهد.",
-      "success"
-    );
-
-
-    await loadReceipts();
-
-
-  }catch(error){
-
-    console.error(
-      "REVIEW ERROR:",
-      error
-    );
-
-
-    showMessage(
-      "❌ عملیات انجام نشد: " +
-      escapeHtml(
-        error?.message ||
-        "خطای نامشخص"
-      ),
-      "error"
-    );
-
-
-    buttons.forEach(
-      function(btn){
-        btn.disabled = false;
-      }
-    );
-
-
-    button.innerText =
-      approve
-        ? "✅ تأیید پرداخت"
-        : "❌ رد رسید";
-
-  }
+  document.getElementById(
+    "modalImage"
+  ).src = "";
 
 }
 
 
-/* =====================================================
-   BLOCK / UNBLOCK USER
-===================================================== */
-
-async function changeUserStatus(
-  button,
-  action
-){
-
-  const userId =
-    button?.dataset?.userId || "";
-
-  const telegramId =
-    button?.dataset?.telegramId || "";
-
-
-  if(
-    !userId &&
-    !telegramId
-  ){
-
-    showMessage(
-      "❌ شناسه کاربر پیدا نشد.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const blocking =
-    action === "block";
-
-
-  const question =
-    blocking
-      ? "آیا می‌خواهید این کاربر مسدود شود؟\n\nکاربر پس از ورود به Mini App باید پیام «حساب شما مسدود شده است» را ببیند."
-      : "آیا می‌خواهید مسدودی این کاربر برداشته شود؟";
-
-
-  if(
-    !window.confirm(
-      question
-    )
-  ){
-
-    return;
-  }
-
-
-  const card =
-    button.closest(
-      ".receipt"
-    );
-
-
-  const buttons =
-    card
-      ? card.querySelectorAll("button")
-      : [button];
-
-
-  buttons.forEach(
-    function(btn){
-      btn.disabled = true;
-    }
-  );
-
-
-  button.innerText =
-    blocking
-      ? "⏳ در حال مسدودسازی..."
-      : "⏳ در حال رفع مسدودی...";
-
-
-  try{
-
-    /*
-    --------------------------------------------------
-    action:
-      block
-      unblock
-
-    status:
-      blocked
-      active
-
-    --------------------------------------------------
-    */
-
-    const payload = {
-
-      action:
-        action,
-
-      status:
-        blocking
-          ? "blocked"
-          : "active",
-
-      userId:
-        userId,
-
-      user_id:
-        userId,
-
-      telegramId:
-        telegramId,
-
-      telegram_id:
-        telegramId,
-
-      secret:
-        ADMIN_SECRET,
-
-      admin_secret:
-        ADMIN_SECRET
-
-    };
-
-
-    console.log(
-      "USER STATUS REQUEST:",
-      payload
-    );
-
-
-    const response =
-      await request(
-        "/api/admin/review",
-        {
-          method:"POST",
-
-          headers:{
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify(payload)
-        }
-      );
-
-
-    const text =
-      await response.text();
-
-
-    let data = null;
-
-
-    try{
-
-      data =
-        text
-          ? JSON.parse(text)
-          : null;
-
-    }catch(error){
-
-      data = null;
-
-    }
-
-
-    if(!response.ok){
-
-      throw new Error(
-        data?.message ||
-        data?.error ||
-        text ||
-        (
-          "HTTP " +
-          response.status
-        )
-      );
-
-    }
-
-
-    if(
-      data &&
-      data.success === false
-    ){
-
-      throw new Error(
-        data.message ||
-        data.error ||
-        "عملیات توسط سرور رد شد."
-      );
-
-    }
-
-
-    showMessage(
-      blocking
-        ? "🚫 کاربر مسدود شد."
-        : "🔓 مسدودی کاربر برداشته شد.",
-      "success"
-    );
-
-
-    await loadReceipts();
-
-
-  }catch(error){
-
-    console.error(
-      "USER STATUS ERROR:",
-      error
-    );
-
-
-    showMessage(
-      "❌ تغییر وضعیت کاربر انجام نشد: " +
-      escapeHtml(
-        error?.message ||
-        "خطای نامشخص"
-      ),
-      "error"
-    );
-
-
-    buttons.forEach(
-      function(btn){
-        btn.disabled = false;
-      }
-    );
-
-
-    button.innerText =
-      blocking
-        ? "🚫 مسدودی کاربر"
-        : "🔓 رفع مسدودی";
-
-  }
-
-}
-
-
-/* =====================================================
-   LOGOUT
-===================================================== */
-
-function logout(){
-
-  window.location.href =
-    "/";
-
-}
-
-
-/* =====================================================
-   FIRST LOAD
-===================================================== */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
-
-    loadReceipts();
-
-  }
-);
-
-
-/* =====================================================
-   AUTO REFRESH
-===================================================== */
-
-setInterval(
-  function(){
-
-    if(
-      document.visibilityState ===
-      "visible"
-    ){
-
-      loadReceipts();
-
-    }
-
-  },
-  30000
-);
+/*
+=========================================================
+START
+=========================================================
+*/
+
+loadReceipts();
 
 </script>
 
 </body>
+
 </html>
