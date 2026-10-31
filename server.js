@@ -1,5 +1,25 @@
 "use strict";
 
+/*
+=========================================================
+TON DROPY BACKEND
+Version: 1.1.0
+Node.js / Express / Vercel / Supabase / Telegram
+=========================================================
+
+IMPORTANT:
+Secrets must be stored in Vercel Environment Variables.
+
+Required:
+SUPABASE_SECRET_KEY
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+ADMIN_SECRET
+
+Optional:
+SUPABASE_URL
+*/
+
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
@@ -14,12 +34,29 @@ CONFIG
 =========================================================
 */
 
+const PORT = Number(process.env.PORT || 3000);
+
 /*
-  Telegram credentials
-  این سه مقدار را در Vercel Environment Variables قرار بده:
-  TELEGRAM_BOT_TOKEN
-  TELEGRAM_CHAT_ID
-  ADMIN_SECRET
+---------------------------------------------------------
+SUPABASE
+---------------------------------------------------------
+*/
+
+const SUPABASE_URL =
+  String(
+    process.env.SUPABASE_URL ||
+      "https://vqddirelnxiklannquuu.supabase.co"
+  ).replace(/\/+$/, "");
+
+const SUPABASE_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_KEY ||
+  "";
+
+/*
+---------------------------------------------------------
+TELEGRAM
+---------------------------------------------------------
 */
 
 const TELEGRAM_BOT_TOKEN =
@@ -28,42 +65,42 @@ const TELEGRAM_BOT_TOKEN =
 const TELEGRAM_CHAT_ID =
   process.env.TELEGRAM_CHAT_ID || "";
 
+/*
+---------------------------------------------------------
+ADMIN
+---------------------------------------------------------
+*/
+
 const ADMIN_SECRET =
-  process.env.ADMIN_SECRET ||
-  "TondropyAdmin2026";
-
-/*
-  Supabase
-*/
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
-  "https://vqddirelnxiklannquuu.supabase.co";
-
-/*
-  IMPORTANT:
-  Secret Key فقط از Vercel خوانده می‌شود.
-  هرگز sb_secret را داخل GitHub قرار نده.
-*/
-
-const SUPABASE_KEY =
-  process.env.SUPABASE_SECRET_KEY ||
-  process.env.SUPABASE_KEY ||
-  "";
-
+  process.env.ADMIN_SECRET || "";
 
 /*
 =========================================================
-APP
+APP CONFIGURATION
 =========================================================
 */
 
 app.disable("x-powered-by");
 
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: true,
-    credentials: false
+    credentials: false,
+    methods: [
+      "GET",
+      "POST",
+      "PATCH",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Admin-Secret"
+    ]
   })
 );
 
@@ -80,7 +117,6 @@ app.use(
   })
 );
 
-
 /*
 =========================================================
 HTTP CLIENT
@@ -88,22 +124,17 @@ HTTP CLIENT
 */
 
 const http = axios.create({
-  timeout: 15000
+  timeout: 20000,
+  validateStatus: () => true
 });
-
 
 /*
 =========================================================
-HELPERS
+GENERAL HELPERS
 =========================================================
 */
 
-function fail(
-  res,
-  status,
-  error,
-  extra = {}
-) {
+function fail(res, status, error, extra = {}) {
   return res.status(status).json({
     success: false,
     error,
@@ -111,6 +142,25 @@ function fail(
   });
 }
 
+function now() {
+  return new Date().toISOString();
+}
+
+function safeString(value) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  return String(value).trim();
+}
+
+function isConfigured(value) {
+  return Boolean(
+    value &&
+      typeof value === "string" &&
+      value.trim().length > 0
+  );
+}
 
 /*
 =========================================================
@@ -121,56 +171,56 @@ SUPABASE
 function getSupabaseHeaders() {
   return {
     apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
     "Content-Type": "application/json",
+    Accept: "application/json",
     Prefer: "return=representation"
   };
 }
 
-
 async function supabase(
   method,
   table,
-  data,
-  params
+  data = undefined,
+  params = undefined
 ) {
-  if (!SUPABASE_KEY) {
+  if (!isConfigured(SUPABASE_KEY)) {
     const error = new Error(
       "SUPABASE_SECRET_KEY is not configured on Vercel."
     );
 
     error.status = 500;
+    error.code = "SUPABASE_KEY_MISSING";
 
     throw error;
   }
 
-  const response =
-    await http.request({
-      method,
-      url:
-        `${SUPABASE_URL}/rest/v1/${table}`,
-      headers:
-        getSupabaseHeaders(),
-      data,
-      params,
-      validateStatus:
-        () => true
-    });
+  const url =
+    `${SUPABASE_URL}/rest/v1/${table}`;
+
+  const response = await http.request({
+    method,
+    url,
+    headers: getSupabaseHeaders(),
+    data,
+    params
+  });
 
   if (response.status >= 400) {
+    const message =
+      response.data?.message ||
+      response.data?.hint ||
+      response.data?.error_description ||
+      response.data?.msg ||
+      `Supabase HTTP ${response.status}`;
 
-    const error =
-      new Error(
-        response.data?.message ||
-        response.data?.hint ||
-        response.data?.error_description ||
-        `Supabase HTTP ${response.status}`
-      );
+    const error = new Error(message);
 
-    error.status =
-      response.status;
-
-    error.details =
-      response.data;
+    error.status = response.status;
+    error.code =
+      response.data?.code ||
+      "SUPABASE_ERROR";
+    error.details = response.data;
 
     throw error;
   }
@@ -178,34 +228,30 @@ async function supabase(
   return response.data;
 }
 
-
 /*
 =========================================================
-TELEGRAM WEBAPP AUTH
+TELEGRAM WEB APP AUTHENTICATION
 =========================================================
 */
 
-function verifyTelegram(
-  initData
-) {
-
-  if (
-    !initData ||
-    !TELEGRAM_BOT_TOKEN
-  ) {
+function verifyTelegram(initData) {
+  if (!initData) {
     return {
       valid: false,
-      reason:
-        "Telegram configuration is missing."
+      reason: "Telegram initData is missing."
+    };
+  }
+
+  if (!isConfigured(TELEGRAM_BOT_TOKEN)) {
+    return {
+      valid: false,
+      reason: "Telegram bot configuration is missing."
     };
   }
 
   try {
-
     const params =
-      new URLSearchParams(
-        initData
-      );
+      new URLSearchParams(initData);
 
     const receivedHash =
       params.get("hash");
@@ -213,24 +259,30 @@ function verifyTelegram(
     if (!receivedHash) {
       return {
         valid: false,
-        reason:
-          "Telegram hash is missing."
+        reason: "Telegram hash is missing."
       };
     }
 
     params.delete("hash");
 
     const dataCheckString =
-      [...params.entries()]
-        .sort(
-          ([a], [b]) =>
-            a.localeCompare(b)
+      Array.from(params.entries())
+        .sort(([a], [b]) =>
+          a.localeCompare(b)
         )
         .map(
           ([key, value]) =>
             `${key}=${value}`
         )
         .join("\n");
+
+    /*
+      Telegram WebApp verification:
+      secret_key = HMAC-SHA256(
+        key="WebAppData",
+        message=BOT_TOKEN
+      )
+    */
 
     const secretKey =
       crypto
@@ -268,10 +320,12 @@ function verifyTelegram(
     const valid =
       crypto.timingSafeEqual(
         Buffer.from(
-          receivedHash
+          receivedHash,
+          "utf8"
         ),
         Buffer.from(
-          calculatedHash
+          calculatedHash,
+          "utf8"
         )
       );
 
@@ -283,17 +337,19 @@ function verifyTelegram(
       };
     }
 
+    /*
+      Prevent very old initData.
+      24 hours is allowed.
+    */
+
     const authDate =
       Number(
-        params.get("auth_date") ||
-        0
+        params.get("auth_date") || 0
       );
 
     if (
-      authDate &&
-      Math.floor(
-        Date.now() / 1000
-      ) -
+      authDate > 0 &&
+      Math.floor(Date.now() / 1000) -
         authDate >
         86400
     ) {
@@ -307,11 +363,9 @@ function verifyTelegram(
     let user = null;
 
     try {
-      user =
-        JSON.parse(
-          params.get("user") ||
-          "null"
-        );
+      user = JSON.parse(
+        params.get("user") || "null"
+      );
     } catch (_) {
       user = null;
     }
@@ -320,9 +374,7 @@ function verifyTelegram(
       valid: true,
       user
     };
-
   } catch (error) {
-
     return {
       valid: false,
       reason:
@@ -332,44 +384,190 @@ function verifyTelegram(
   }
 }
 
-
 /*
 =========================================================
-ADMIN AUTH
+ADMIN AUTHENTICATION
 =========================================================
 */
 
 function verifyAdmin(req) {
+  /*
+    If ADMIN_SECRET is not configured,
+    admin API is disabled.
+  */
+
+  if (!isConfigured(ADMIN_SECRET)) {
+    return false;
+  }
 
   const headerSecret =
-    req.headers[
-      "x-admin-secret"
-    ] || "";
+    safeString(
+      req.headers["x-admin-secret"]
+    );
 
   const authorization =
-    req.headers.authorization ||
-    "";
+    safeString(
+      req.headers.authorization
+    );
 
   const bearerSecret =
-    authorization.startsWith(
-      "Bearer "
-    )
-      ? authorization.slice(7)
+    authorization.startsWith("Bearer ")
+      ? authorization.slice(7).trim()
       : "";
 
   const querySecret =
-    req.query.secret || "";
+    safeString(
+      req.query?.secret
+    );
 
   return (
-    headerSecret ===
-      ADMIN_SECRET ||
-    bearerSecret ===
-      ADMIN_SECRET ||
-    querySecret ===
-      ADMIN_SECRET
+    headerSecret === ADMIN_SECRET ||
+    bearerSecret === ADMIN_SECRET ||
+    querySecret === ADMIN_SECRET
   );
 }
 
+/*
+=========================================================
+TELEGRAM RECEIPT NOTIFICATION
+=========================================================
+*/
+
+async function sendTelegramReceipt(
+  telegramId,
+  username,
+  amount,
+  imageData,
+  receiptId
+) {
+  if (
+    !isConfigured(
+      TELEGRAM_BOT_TOKEN
+    )
+  ) {
+    throw new Error(
+      "TELEGRAM_BOT_TOKEN is not configured."
+    );
+  }
+
+  if (
+    !isConfigured(
+      TELEGRAM_CHAT_ID
+    )
+  ) {
+    throw new Error(
+      "TELEGRAM_CHAT_ID is not configured."
+    );
+  }
+
+  const match =
+    String(imageData).match(
+      /^data:(image\/[^;]+);base64,(.+)$/i
+    );
+
+  if (!match) {
+    throw new Error(
+      "Invalid receipt image."
+    );
+  }
+
+  const mime = match[1];
+
+  const buffer =
+    Buffer.from(
+      match[2],
+      "base64"
+    );
+
+  let extension = "jpg";
+
+  if (
+    mime.toLowerCase().includes("png")
+  ) {
+    extension = "png";
+  } else if (
+    mime.toLowerCase().includes("webp")
+  ) {
+    extension = "webp";
+  }
+
+  const caption =
+`TON Dropy
+
+🧾 رسید جدید
+
+👤 Telegram ID: ${telegramId}
+
+🔹 Username: ${
+  username
+    ? "@" + username
+    : "-"
+}
+
+💰 مبلغ: ${
+  amount
+    ? Number(amount).toLocaleString("fa-IR")
+    : "-"
+}
+
+🆔 Receipt ID: ${
+  receiptId || "-"
+}
+
+⏳ وضعیت: در انتظار بررسی`;
+
+  /*
+    Node.js 18+ provides fetch/FormData/Blob.
+  */
+
+  const form =
+    new FormData();
+
+  form.append(
+    "chat_id",
+    TELEGRAM_CHAT_ID
+  );
+
+  form.append(
+    "caption",
+    caption
+  );
+
+  form.append(
+    "photo",
+    new Blob(
+      [buffer],
+      {
+        type: mime
+      }
+    ),
+    `receipt-${Date.now()}.${extension}`
+  );
+
+  const response =
+    await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body: form
+      }
+    );
+
+  const result =
+    await response.json();
+
+  if (
+    !response.ok ||
+    !result.ok
+  ) {
+    throw new Error(
+      result.description ||
+        "Telegram API error."
+    );
+  }
+
+  return result;
+}
 
 /*
 =========================================================
@@ -380,44 +578,52 @@ HEALTH
 app.get(
   "/api/health",
   (req, res) => {
-
-    res.json({
+    return res.json({
       success: true,
+
       online: true,
+
       service:
         "TON Dropy Backend",
-      version: "1.0.4",
+
+      version:
+        "1.1.0",
 
       supabaseConfigured:
-        Boolean(
+        isConfigured(
           SUPABASE_KEY
         ),
 
       telegramConfigured:
-        Boolean(
+        isConfigured(
           TELEGRAM_BOT_TOKEN
         ),
 
-      timestamp:
-        new Date().toISOString()
-    });
+      adminConfigured:
+        isConfigured(
+          ADMIN_SECRET
+        ),
 
+      supabaseUrlConfigured:
+        isConfigured(
+          SUPABASE_URL
+        ),
+
+      timestamp: now()
+    });
   }
 );
 
-
 /*
 =========================================================
-TEST SUPABASE
+TEST SUPABASE DATABASE
 =========================================================
 */
 
 app.get(
   "/api/test-db",
   async (req, res) => {
-
     try {
-
       const users =
         await supabase(
           "GET",
@@ -431,36 +637,44 @@ app.get(
           }
         );
 
-      res.json({
+      return res.json({
         success: true,
+
         message:
           "Supabase connection is working.",
+
         count:
           Array.isArray(users)
             ? users.length
             : 0,
+
         users
       });
-
     } catch (error) {
-
-      res.status(
+      return res.status(
         error.status || 500
       ).json({
         success: false,
+
+        message:
+          "Supabase connection failed.",
+
         error:
           error.message,
+
+        code:
+          error.code ||
+          "SUPABASE_ERROR",
+
         status:
           error.status || 500,
+
         details:
           error.details || null
       });
-
     }
-
   }
 );
-
 
 /*
 =========================================================
@@ -471,10 +685,14 @@ TELEGRAM AUTH
 app.post(
   "/api/auth/telegram",
   async (req, res) => {
+    const initData =
+      safeString(
+        req.body?.initData
+      );
 
     const result =
       verifyTelegram(
-        req.body?.initData
+        initData
       );
 
     if (!result.valid) {
@@ -489,7 +707,8 @@ app.post(
       result.user;
 
     if (
-      !telegramUser?.id
+      !telegramUser ||
+      !telegramUser.id
     ) {
       return fail(
         res,
@@ -504,19 +723,21 @@ app.post(
       );
 
     const username =
-      telegramUser.username ||
-      "";
+      safeString(
+        telegramUser.username
+      );
 
     const firstName =
-      telegramUser.first_name ||
-      "";
+      safeString(
+        telegramUser.first_name
+      );
 
     const lastName =
-      telegramUser.last_name ||
-      "";
+      safeString(
+        telegramUser.last_name
+      );
 
     try {
-
       const existing =
         await supabase(
           "GET",
@@ -530,23 +751,31 @@ app.post(
           }
         );
 
-      if (
-        existing.length
-      ) {
+      /*
+      ---------------------------------------------------
+      EXISTING USER
+      ---------------------------------------------------
+      */
 
+      if (
+        Array.isArray(existing) &&
+        existing.length > 0
+      ) {
         const user =
           existing[0];
 
         const changed =
-          user.username !==
-            username ||
-          user.first_name !==
-            firstName ||
-          user.last_name !==
-            lastName;
+          safeString(
+            user.username
+          ) !== username ||
+          safeString(
+            user.first_name
+          ) !== firstName ||
+          safeString(
+            user.last_name
+          ) !== lastName;
 
         if (changed) {
-
           await supabase(
             "PATCH",
             "users",
@@ -557,7 +786,7 @@ app.post(
               last_name:
                 lastName,
               updated_at:
-                new Date().toISOString()
+                now()
             },
             {
               telegram_id:
@@ -577,16 +806,16 @@ app.post(
 
         return res.json({
           success: true,
+
           existing: true,
 
           user_id:
-            user.id,
+            user.id || null,
 
           telegram_id:
             telegramId,
 
-          username:
-            user.username || "",
+          username,
 
           account_status:
             user.account_status ||
@@ -595,6 +824,12 @@ app.post(
           user
         });
       }
+
+      /*
+      ---------------------------------------------------
+      NEW USER
+      ---------------------------------------------------
+      */
 
       const created =
         await supabase(
@@ -618,10 +853,13 @@ app.post(
         );
 
       const user =
-        created[0];
+        Array.isArray(created)
+          ? created[0]
+          : null;
 
       return res.json({
         success: true,
+
         existing: false,
 
         user_id:
@@ -638,9 +876,78 @@ app.post(
 
         user
       });
-
     } catch (error) {
+      return res.status(
+        error.status || 500
+      ).json({
+        success: false,
 
+        error:
+          error.message,
+
+        code:
+          error.code ||
+          "AUTH_ERROR",
+
+        details:
+          error.details || null
+      });
+    }
+  }
+);
+
+/*
+=========================================================
+GET USER
+=========================================================
+*/
+
+app.get(
+  "/api/user/:telegramId",
+  async (req, res) => {
+    const telegramId =
+      safeString(
+        req.params.telegramId
+      );
+
+    if (!telegramId) {
+      return fail(
+        res,
+        400,
+        "telegramId is required."
+      );
+    }
+
+    try {
+      const users =
+        await supabase(
+          "GET",
+          "users",
+          undefined,
+          {
+            select: "*",
+            telegram_id:
+              `eq.${telegramId}`,
+            limit: 1
+          }
+        );
+
+      if (
+        !Array.isArray(users) ||
+        !users.length
+      ) {
+        return fail(
+          res,
+          404,
+          "User not found."
+        );
+      }
+
+      return res.json({
+        success: true,
+        user: users[0]
+      });
+    } catch (error) {
       return res.status(
         error.status || 500
       ).json({
@@ -650,12 +957,9 @@ app.post(
         details:
           error.details || null
       });
-
     }
-
   }
 );
-
 
 /*
 =========================================================
@@ -666,28 +970,26 @@ UPLOAD RECEIPT
 app.post(
   "/api/upload-receipt",
   async (req, res) => {
-
     const telegramId =
-      String(
-        req.body?.telegramId ||
-        ""
-      ).trim();
+      safeString(
+        req.body?.telegramId
+      );
 
     const username =
-      String(
-        req.body?.username ||
-        ""
-      ).trim();
+      safeString(
+        req.body?.username
+      );
 
     const amount =
       Number(
-        req.body?.amount ||
-        0
+        req.body?.amount || 0
       );
 
     /*
-      پشتیبانی از هر سه نام
-      برای سازگاری با نسخه‌های قبلی
+      Compatibility with old frontend versions:
+      imageData
+      imageBase64
+      receipt
     */
 
     const imageData =
@@ -716,6 +1018,10 @@ app.post(
       );
     }
 
+    /*
+      Limit receipt payload.
+    */
+
     if (
       imageData.length >
       10 * 1024 * 1024
@@ -728,6 +1034,11 @@ app.post(
     }
 
     try {
+      /*
+      ---------------------------------------------------
+      FIND USER
+      ---------------------------------------------------
+      */
 
       const users =
         await supabase(
@@ -742,7 +1053,10 @@ app.post(
           }
         );
 
-      if (!users.length) {
+      if (
+        !Array.isArray(users) ||
+        !users.length
+      ) {
         return fail(
           res,
           404,
@@ -753,19 +1067,33 @@ app.post(
       const user =
         users[0];
 
+      /*
+      ---------------------------------------------------
+      ALREADY ACTIVE
+      ---------------------------------------------------
+      */
+
       if (
         user.account_status ===
         "active"
       ) {
-
         return res.json({
           success: true,
+
           alreadyActive: true,
+
           message:
             "Your account is already active.",
+
           user
         });
       }
+
+      /*
+      ---------------------------------------------------
+      CHECK PENDING RECEIPT
+      ---------------------------------------------------
+      */
 
       const pending =
         await supabase(
@@ -787,13 +1115,14 @@ app.post(
         );
 
       if (
+        Array.isArray(pending) &&
         pending.length
       ) {
-
         return res.status(
           409
         ).json({
           success: false,
+
           pending: true,
 
           message:
@@ -802,8 +1131,13 @@ app.post(
           receipt:
             pending[0]
         });
-
       }
+
+      /*
+      ---------------------------------------------------
+      INSERT RECEIPT
+      ---------------------------------------------------
+      */
 
       const inserted =
         await supabase(
@@ -822,7 +1156,9 @@ app.post(
               "",
 
             amount:
-              amount || null,
+              amount > 0
+                ? amount
+                : null,
 
             image_data:
               imageData,
@@ -833,7 +1169,15 @@ app.post(
         );
 
       const receipt =
-        inserted[0];
+        Array.isArray(inserted)
+          ? inserted[0]
+          : null;
+
+      /*
+      ---------------------------------------------------
+      UPDATE USER
+      ---------------------------------------------------
+      */
 
       await supabase(
         "PATCH",
@@ -843,7 +1187,7 @@ app.post(
             "pending",
 
           updated_at:
-            new Date().toISOString()
+            now()
         },
         {
           telegram_id:
@@ -852,35 +1196,48 @@ app.post(
       );
 
       /*
-        ارسال رسید به Telegram
+      ---------------------------------------------------
+      TELEGRAM NOTIFICATION
+      ---------------------------------------------------
       */
 
+      let telegramNotification =
+        "not_configured";
+
       if (
-        TELEGRAM_BOT_TOKEN &&
-        TELEGRAM_CHAT_ID
+        isConfigured(
+          TELEGRAM_BOT_TOKEN
+        ) &&
+        isConfigured(
+          TELEGRAM_CHAT_ID
+        )
       ) {
-
         try {
-
           await sendTelegramReceipt(
             telegramId,
+
             username ||
               user.username ||
               "",
+
             amount,
+
             imageData,
+
             receipt?.id
           );
 
-        } catch (error) {
+          telegramNotification =
+            "sent";
+        } catch (telegramError) {
+          telegramNotification =
+            "failed";
 
           console.error(
             "Telegram notification failed:",
-            error.message
+            telegramError.message
           );
-
         }
-
       }
 
       return res.json({
@@ -892,152 +1249,39 @@ app.post(
         receipt,
 
         account_status:
-          "pending"
+          "pending",
+
+        telegramNotification
       });
-
     } catch (error) {
-
       return res.status(
         error.status || 500
       ).json({
         success: false,
+
         error:
           error.message,
+
+        code:
+          error.code ||
+          "RECEIPT_ERROR",
+
         details:
           error.details || null
       });
-
     }
-
   }
 );
 
-
 /*
 =========================================================
-SEND RECEIPT TO TELEGRAM
-=========================================================
-*/
-
-async function sendTelegramReceipt(
-  telegramId,
-  username,
-  amount,
-  imageData,
-  receiptId
-) {
-
-  const match =
-    imageData.match(
-      /^data:(image\/[^;]+);base64,(.+)$/i
-    );
-
-  if (!match) {
-    throw new Error(
-      "Invalid receipt image."
-    );
-  }
-
-  const mime =
-    match[1];
-
-  const buffer =
-    Buffer.from(
-      match[2],
-      "base64"
-    );
-
-  const extension =
-    mime.includes("png")
-      ? "png"
-      : mime.includes("webp")
-      ? "webp"
-      : "jpg";
-
-  const form =
-    new FormData();
-
-  form.append(
-    "chat_id",
-    TELEGRAM_CHAT_ID
-  );
-
-  form.append(
-    "caption",
-
-`TON Dropy
-
-🧾 رسید جدید
-
-👤 Telegram ID: ${telegramId}
-🔹 Username: ${
-  username
-    ? "@" + username
-    : "-"
-}
-💰 مبلغ: ${
-  amount
-    ? Number(
-        amount
-      ).toLocaleString(
-        "fa-IR"
-      )
-    : "-"
-}
-🆔 Receipt ID: ${
-  receiptId || "-"
-}
-
-⏳ وضعیت: در انتظار بررسی`
-  );
-
-  form.append(
-    "photo",
-    new Blob(
-      [buffer],
-      {
-        type: mime
-      }
-    ),
-    `receipt-${Date.now()}.${extension}`
-  );
-
-  const response =
-    await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-      {
-        method:
-          "POST",
-        body:
-          form
-      }
-    );
-
-  const data =
-    await response.json();
-
-  if (
-    !response.ok ||
-    !data.ok
-  ) {
-    throw new Error(
-      data.description ||
-        "Telegram API error."
-    );
-  }
-}
-
-
-/*
-=========================================================
-ADMIN RECEIPTS
+ADMIN - GET RECEIPTS
 =========================================================
 */
 
 app.get(
   "/api/admin/receipts-v2",
   async (req, res) => {
-
     if (!verifyAdmin(req)) {
       return fail(
         res,
@@ -1047,7 +1291,6 @@ app.get(
     }
 
     try {
-
       const receipts =
         await supabase(
           "GET",
@@ -1062,37 +1305,40 @@ app.get(
 
       return res.json({
         success: true,
-        receipts
+        receipts:
+          Array.isArray(receipts)
+            ? receipts
+            : []
       });
-
     } catch (error) {
-
       return res.status(
         error.status || 500
       ).json({
         success: false,
+
         error:
           error.message,
+
+        code:
+          error.code ||
+          "ADMIN_RECEIPTS_ERROR",
+
         details:
           error.details || null
       });
-
     }
-
   }
 );
 
-
 /*
 =========================================================
-ADMIN REVIEW
+ADMIN - REVIEW RECEIPT
 =========================================================
 */
 
 app.post(
   "/api/admin/review",
   async (req, res) => {
-
     if (!verifyAdmin(req)) {
       return fail(
         res,
@@ -1102,13 +1348,14 @@ app.post(
     }
 
     const receiptId =
-      String(
-        req.body?.receiptId ||
-        ""
+      safeString(
+        req.body?.receiptId
       );
 
     const status =
-      req.body?.status;
+      safeString(
+        req.body?.status
+      ).toLowerCase();
 
     if (!receiptId) {
       return fail(
@@ -1132,10 +1379,10 @@ app.post(
     }
 
     try {
-
       /*
-        رسید واقعی را از DB می‌خوانیم.
-        user_id از مرورگر قبول نمی‌شود.
+      ---------------------------------------------------
+      GET RECEIPT
+      ---------------------------------------------------
       */
 
       const rows =
@@ -1145,13 +1392,18 @@ app.post(
           undefined,
           {
             select: "*",
+
             id:
               `eq.${receiptId}`,
+
             limit: 1
           }
         );
 
-      if (!rows.length) {
+      if (
+        !Array.isArray(rows) ||
+        !rows.length
+      ) {
         return fail(
           res,
           404,
@@ -1162,11 +1414,16 @@ app.post(
       const receipt =
         rows[0];
 
+      /*
+      ---------------------------------------------------
+      ONLY PENDING RECEIPTS
+      ---------------------------------------------------
+      */
+
       if (
         receipt.status !==
         "pending"
       ) {
-
         return res.status(
           409
         ).json({
@@ -1178,11 +1435,16 @@ app.post(
           current_status:
             receipt.status
         });
-
       }
 
       const reviewedAt =
-        new Date().toISOString();
+        now();
+
+      /*
+      ---------------------------------------------------
+      UPDATE RECEIPT
+      ---------------------------------------------------
+      */
 
       const updated =
         await supabase(
@@ -1190,6 +1452,7 @@ app.post(
           "receipts",
           {
             status,
+
             reviewed_at:
               reviewedAt
           },
@@ -1202,18 +1465,27 @@ app.post(
           }
         );
 
-      if (!updated.length) {
+      if (
+        !Array.isArray(updated) ||
+        !updated.length
+      ) {
         return res.status(
           409
         ).json({
           success: false,
+
           error:
             "Receipt was already reviewed."
         });
       }
 
-      try {
+      /*
+      ---------------------------------------------------
+      UPDATE USER
+      ---------------------------------------------------
+      */
 
+      try {
         const userFilter =
           receipt.user_id
             ? {
@@ -1240,16 +1512,12 @@ app.post(
           },
           userFilter
         );
-
-      } catch (error) {
-
+      } catch (userError) {
         /*
-          Rollback receipt
-          اگر تغییر کاربر شکست خورد
+          Roll back receipt if user update fails.
         */
 
         try {
-
           await supabase(
             "PATCH",
             "receipts",
@@ -1268,64 +1536,120 @@ app.post(
                 `eq.${status}`
             }
           );
-
         } catch (_) {}
 
-        throw error;
+        throw userError;
       }
 
       return res.json({
         success: true,
 
         message:
-          status ===
-          "approved"
+          status === "approved"
             ? "Receipt approved and user activated."
             : "Receipt rejected.",
 
         receipt:
           updated[0]
       });
-
     } catch (error) {
-
       return res.status(
         error.status || 500
       ).json({
         success: false,
+
         error:
           error.message,
+
+        code:
+          error.code ||
+          "ADMIN_REVIEW_ERROR",
+
         details:
           error.details || null
       });
-
     }
-
   }
 );
 
+/*
+=========================================================
+ADMIN - GET USERS
+=========================================================
+*/
+
+app.get(
+  "/api/admin/users",
+  async (req, res) => {
+    if (!verifyAdmin(req)) {
+      return fail(
+        res,
+        401,
+        "Unauthorized."
+      );
+    }
+
+    try {
+      const users =
+        await supabase(
+          "GET",
+          "users",
+          undefined,
+          {
+            select: "*",
+            order:
+              "created_at.desc"
+          }
+        );
+
+      return res.json({
+        success: true,
+
+        users:
+          Array.isArray(users)
+            ? users
+            : []
+      });
+    } catch (error) {
+      return res.status(
+        error.status || 500
+      ).json({
+        success: false,
+
+        error:
+          error.message,
+
+        details:
+          error.details || null
+      });
+    }
+  }
+);
 
 /*
 =========================================================
-PAGES
+ADMIN PAGE
 =========================================================
 */
 
 app.get(
   "/admin",
   (req, res) => {
-
-    res.sendFile(
+    return res.sendFile(
       path.join(
         __dirname,
         "public",
         "admin.html"
       )
     );
-
   }
 );
 
+/*
+=========================================================
+STATIC FRONTEND
+=========================================================
+*/
 
 app.use(
   express.static(
@@ -1334,12 +1658,33 @@ app.use(
       "public"
     ),
     {
-      index:
-        "index.html"
+      index: "index.html",
+
+      extensions: [
+        "html"
+      ]
     }
   )
 );
 
+/*
+=========================================================
+ROOT
+=========================================================
+*/
+
+app.get(
+  "/",
+  (req, res) => {
+    return res.sendFile(
+      path.join(
+        __dirname,
+        "public",
+        "index.html"
+      )
+    );
+  }
+);
 
 /*
 =========================================================
@@ -1349,19 +1694,16 @@ app.use(
 
 app.use(
   (req, res) => {
-
     if (
       req.path.startsWith(
         "/api/"
       )
     ) {
-
       return fail(
         res,
         404,
         "API route not found."
       );
-
     }
 
     return res
@@ -1369,15 +1711,63 @@ app.use(
       .send(
         "TON Dropy - Page not found."
       );
-
   }
 );
 
+/*
+=========================================================
+ERROR HANDLER
+=========================================================
+*/
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      "Unhandled server error:",
+      error
+    );
+
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    return res.status(500).json({
+      success: false,
+
+      error:
+        "Internal server error."
+    });
+  }
+);
 
 /*
 =========================================================
-VERCEL
+VERCEL EXPORT
 =========================================================
 */
 
 module.exports = app;
+
+/*
+=========================================================
+LOCAL DEVELOPMENT
+=========================================================
+*/
+
+if (
+  require.main === module
+) {
+  app.listen(
+    PORT,
+    () => {
+      console.log(
+        `TON Dropy Backend running on port ${PORT}`
+      );
+    }
+  );
+}
